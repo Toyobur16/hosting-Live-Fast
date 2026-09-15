@@ -1,0 +1,24 @@
+[
+  {
+    "id": "toyobur",
+    "email": "toyobur@telegram.bot",
+    "name": "Toyobur Rahman",
+    "role": "admin",
+    "maxBots": 999,
+    "plan": "admin_unlimited",
+    "balanceBdt": 0,
+    "balanceUsd": 0
+  },
+  {
+    "id": "user_1789353285319_jos3",
+    "name": "Toyobur Rahman Test",
+    "email": "toyoburrahman560@gmail.com",
+    "role": "user",
+    "plan": "free",
+    "maxBots": 1,
+    "isVerified": true,
+    "balanceBdt": 0,
+    "balanceUsd": 0,
+    "googleId": "google_sub_12345"
+  }
+]
