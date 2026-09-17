@@ -42,7 +42,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const GOOGLE_CLIENT_ID =
     (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID ||
-    '617408661237-hh7c136m8svtsj6t9l4r1cjgq49shd15.apps.googleusercontent.com';
+    '834197768303-oh9nrv1m59cmc2749uvjs6hrtfghh4n9.apps.googleusercontent.com';
 
   useEffect(() => {
     if (isOpen) {
