@@ -113,8 +113,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 z-50 animate-in fade-in duration-200">
-        <div className="bg-white dark:bg-[#111827] border border-[#e2e8f0] dark:border-[#1f293d] rounded-3xl max-w-5xl w-full h-[88vh] max-h-[850px] shadow-2xl flex flex-col overflow-hidden transition-colors">
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-start sm:justify-center p-0 sm:p-5 z-50 animate-in fade-in duration-200 pt-[max(0.35rem,env(safe-area-inset-top))] pb-[max(0.35rem,env(safe-area-inset-bottom))]">
+        <div className="bg-white dark:bg-[#111827] border-0 sm:border border-[#e2e8f0] dark:border-[#1f293d] rounded-none sm:rounded-3xl max-w-5xl w-full h-full sm:h-[88vh] max-h-[100dvh] sm:max-h-[850px] shadow-2xl flex flex-col overflow-hidden transition-colors">
           {/* Modal Header */}
           <div className="px-6 py-4 border-b border-[#e2e8f0] dark:border-[#1f293d] flex items-center justify-between bg-[#f8fafc] dark:bg-[#111827]">
             <div className="flex items-center gap-3">

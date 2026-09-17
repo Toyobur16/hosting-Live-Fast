@@ -305,8 +305,8 @@ export const PlansModal: React.FC<PlansModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-[#050811]/90 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-[#111927] border border-[#1f2c42] shadow-2xl rounded-3xl max-w-5xl w-full p-4 sm:p-6 text-white relative overflow-hidden max-h-[95vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-start sm:justify-center p-0 sm:p-4 bg-[#050811]/90 backdrop-blur-md animate-in fade-in duration-200 pt-[max(0.35rem,env(safe-area-inset-top))] pb-[max(0.35rem,env(safe-area-inset-bottom))]">
+      <div className="bg-[#111927] border-0 sm:border border-[#1f2c42] shadow-2xl rounded-none sm:rounded-3xl max-w-5xl w-full p-4 sm:p-6 text-white relative overflow-hidden h-full sm:h-auto max-h-[100dvh] sm:max-h-[95vh] flex flex-col">
         
         {/* Header Bar */}
         <div className="flex items-center justify-between border-b border-[#1f2c42] pb-4 mb-4">

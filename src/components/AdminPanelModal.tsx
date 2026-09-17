@@ -552,11 +552,11 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-1 sm:p-4 bg-[#030712]/92 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-[#0b1120] border border-[#1e2e48] shadow-2xl rounded-2xl sm:rounded-3xl max-w-6xl w-full p-2.5 sm:p-5 text-white relative h-[98vh] sm:h-[95vh] max-h-[98vh] sm:max-h-[95vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-start sm:justify-center p-0 sm:p-4 bg-[#030712]/95 backdrop-blur-md animate-in fade-in duration-200 pt-[max(0.35rem,env(safe-area-inset-top))] pb-[max(0.35rem,env(safe-area-inset-bottom))]">
+      <div className="bg-[#0b1120] border-0 sm:border border-[#1e2e48] shadow-2xl rounded-none sm:rounded-3xl max-w-6xl w-full p-2.5 sm:p-5 text-white relative h-full sm:h-[95vh] max-h-[100dvh] sm:max-h-[95vh] flex flex-col overflow-hidden">
         
         {/* Pinned Responsive Header (shrink-0) */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1f2c42] pb-2.5 mb-2 shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1f2c42] pb-2 sm:pb-2.5 mb-2 shrink-0 pt-0.5 sm:pt-0">
           <div className="flex items-center justify-between gap-2 w-full sm:w-auto">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center shadow-lg shadow-rose-500/10 shrink-0">
