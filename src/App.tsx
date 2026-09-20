@@ -599,7 +599,7 @@ export default function App() {
       />
 
       {/* Main Page Content - Generous bottom padding on mobile so bottom bar never obscures content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-28 lg:pb-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-28 lg:pb-8 min-w-0 overflow-x-hidden">
         {toastMessage && (
           <div className="mb-4 p-3.5 bg-emerald-950/80 border border-emerald-500/40 text-emerald-200 rounded-2xl text-xs flex items-center justify-between shadow-lg animate-in fade-in">
             <div className="flex items-center gap-2">

@@ -563,7 +563,7 @@ export function StoreWalletPage({
   const calculatedBdt = (parseFloat(depositAmount) || 0) * BDT_RATE;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-24 animate-in fade-in duration-200 px-2 sm:px-4">
+    <div className="max-w-4xl mx-auto space-y-6 pb-24 animate-in fade-in duration-200 px-2 sm:px-4 w-full overflow-x-hidden">
       {/* Real-time Balance Toast Notification */}
       <AnimatePresence>
         {balanceToast && (
@@ -591,18 +591,18 @@ export function StoreWalletPage({
       </AnimatePresence>
 
       {/* Main Top Navigation Tabs */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#0a101d] p-1.5 rounded-2xl border border-[#1a263d]">
-        <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-[#0a101d] p-1.5 rounded-2xl border border-[#1a263d]">
+        <div className="grid grid-cols-3 sm:flex items-center gap-1 sm:gap-1.5 w-full sm:w-auto">
           <button
             onClick={() => setView('overview')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            className={`px-2.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center ${
               view === 'overview'
                 ? 'bg-[#00d293] text-slate-950 font-black shadow-md'
                 : 'text-slate-400 hover:text-white hover:bg-[#111c30]'
             }`}
           >
-            <Wallet className="w-3.5 h-3.5" />
-            <span>ওয়ালেট ও ব্যালেন্স</span>
+            <Wallet className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">ওয়ালেট</span>
           </button>
 
           <button
@@ -610,14 +610,14 @@ export function StoreWalletPage({
               if (!user) onOpenAuthModal();
               else setView('deposit');
             }}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            className={`px-2.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center ${
               view === 'deposit'
                 ? 'bg-[#00d293] text-slate-950 font-black shadow-md'
                 : 'text-slate-400 hover:text-white hover:bg-[#111c30]'
             }`}
           >
-            <Plus className="w-3.5 h-3.5 stroke-[3]" />
-            <span>টাকা ডিপোজিট করুন</span>
+            <Plus className="w-3.5 h-3.5 stroke-[3] shrink-0" />
+            <span className="truncate">ডিপোজিট</span>
           </button>
 
           <button
@@ -625,16 +625,16 @@ export function StoreWalletPage({
               if (!user) onOpenAuthModal();
               else setView('history');
             }}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            className={`px-2.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center ${
               view === 'history'
                 ? 'bg-[#00d293] text-slate-950 font-black shadow-md'
                 : 'text-slate-400 hover:text-white hover:bg-[#111c30]'
             }`}
           >
-            <Receipt className="w-3.5 h-3.5" />
-            <span>ডিপোজিট হিস্ট্রি</span>
+            <Receipt className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">হিস্ট্রি</span>
             {userRequests.length > 0 && (
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black shrink-0 ${
                 view === 'history' ? 'bg-slate-950 text-[#00d293]' : 'bg-emerald-500/20 text-emerald-400'
               }`}>
                 {userRequests.length}
@@ -645,23 +645,23 @@ export function StoreWalletPage({
 
         {/* Auto-Sync Real-time Indicator & Manual Refresh Button */}
         {user && (
-          <div className="flex items-center gap-2 px-2">
-            <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+          <div className="flex items-center justify-end gap-2 px-1">
+            <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span>অটো-সিঙ্ক চালু</span>
+              <span>অটো-সিঙ্ক</span>
             </div>
 
             <button
               onClick={() => performAutoSync(false)}
               disabled={isSyncing}
-              className="p-1.5 rounded-lg bg-[#141e33] hover:bg-[#1c2a47] text-slate-300 hover:text-white border border-slate-700/60 cursor-pointer transition flex items-center gap-1 text-[11px] font-semibold disabled:opacity-50"
+              className="p-1.5 px-2.5 rounded-lg bg-[#141e33] hover:bg-[#1c2a47] text-slate-300 hover:text-white border border-slate-700/60 cursor-pointer transition flex items-center gap-1.5 text-[11px] font-semibold disabled:opacity-50"
               title="ব্যালেন্স ও হিস্ট্রি রিফ্রেশ করুন"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-emerald-400' : ''}`} />
-              <span className="hidden md:inline">{isSyncing ? 'সিঙ্ক হচ্ছে...' : 'সিঙ্ক করুন'}</span>
+              <span>{isSyncing ? 'সিঙ্ক হচ্ছে...' : 'রিফ্রেশ'}</span>
             </button>
           </div>
         )}
@@ -692,11 +692,11 @@ export function StoreWalletPage({
           </div>
 
           {/* Gradient Balance Card strictly in USDT */}
-          <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#00d293]/20 via-[#0d1c2e] to-[#070e18] border border-[#00d293]/30 p-6 sm:p-8 shadow-2xl space-y-6">
+          <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#00d293]/20 via-[#0d1c2e] to-[#070e18] border border-[#00d293]/30 p-4 sm:p-7 shadow-2xl space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[11px] sm:text-xs font-bold text-slate-300 uppercase tracking-wider">
                     Current Balance (বর্তমান ব্যালেন্স)
                   </span>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
@@ -704,28 +704,28 @@ export function StoreWalletPage({
                     Auto-Synced
                   </span>
                 </div>
-                <div className="flex items-baseline gap-2.5 mt-1.5">
+                <div className="flex items-baseline gap-2 mt-1">
                   <span className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight">
                     ${(user?.balanceUsd || 0).toFixed(2)}
                   </span>
-                  <span className="text-xs sm:text-sm font-black text-[#00d293] px-2.5 py-1 rounded-lg bg-[#00d293]/15 uppercase tracking-wider">
+                  <span className="text-xs sm:text-sm font-black text-[#00d293] px-2 py-0.5 rounded-lg bg-[#00d293]/15 uppercase tracking-wider">
                     USDT
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1.5">
+                <p className="text-[11px] text-slate-400 mt-1 leading-snug">
                   এই ব্যালেন্স দিয়ে যেকোনো বট ফাইল, স্ক্রিপ্ট ও হোস্টিং প্লান কিনতে পারবেন।
                 </p>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2.5">
+              <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
                 <button
                   id="wallet-open-deposit-btn"
                   onClick={() => {
                     if (!user) onOpenAuthModal();
                     else setView('deposit');
                   }}
-                  className="px-5 py-3 rounded-xl bg-[#00d293] hover:bg-[#00be84] text-slate-950 font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-[#00d293]/30 cursor-pointer transition-all hover:scale-105 active:scale-95"
+                  className="px-4 py-2.5 sm:py-3 rounded-xl bg-[#00d293] hover:bg-[#00be84] text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg shadow-[#00d293]/30 cursor-pointer transition-all hover:scale-[1.02] active:scale-95"
                 >
                   <Plus className="w-4 h-4 stroke-[3]" />
                   <span>Deposit USDT</span>
@@ -736,7 +736,7 @@ export function StoreWalletPage({
                     if (!user) onOpenAuthModal();
                     else setView('history');
                   }}
-                  className="px-4 py-3 rounded-xl bg-[#141f33] hover:bg-[#1c2c48] text-white font-bold text-xs sm:text-sm flex items-center gap-2 border border-slate-700 cursor-pointer transition-all"
+                  className="px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-[#141f33] hover:bg-[#1c2c48] text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 border border-slate-700 cursor-pointer transition-all"
                 >
                   <Receipt className="w-4 h-4 text-amber-400" />
                   <span>হিস্ট্রি</span>
@@ -746,21 +746,21 @@ export function StoreWalletPage({
 
             {/* Quick Mini Stats row */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-[#00d293]/20 text-xs">
-              <div className="p-2.5 rounded-xl bg-[#070d17]/60 border border-slate-800">
-                <span className="text-[10px] text-slate-400 block">মোট সফল ডিপোজিট</span>
-                <span className="text-sm font-black text-emerald-400">${depositStats.totalApprovedUsd.toFixed(2)}</span>
+              <div className="p-2 sm:p-2.5 rounded-xl bg-[#070d17]/60 border border-slate-800">
+                <span className="text-[10px] text-slate-400 block truncate">মোট সফল ডিপোজিট</span>
+                <span className="text-xs sm:text-sm font-black text-emerald-400 block truncate">${depositStats.totalApprovedUsd.toFixed(2)}</span>
               </div>
-              <div className="p-2.5 rounded-xl bg-[#070d17]/60 border border-slate-800">
-                <span className="text-[10px] text-slate-400 block">অপেক্ষমান রিকোয়েস্ট</span>
-                <span className="text-sm font-black text-amber-400">{depositStats.pendingCount} টি</span>
+              <div className="p-2 sm:p-2.5 rounded-xl bg-[#070d17]/60 border border-slate-800">
+                <span className="text-[10px] text-slate-400 block truncate">অপেক্ষমান রিকোয়েস্ট</span>
+                <span className="text-xs sm:text-sm font-black text-amber-400 block truncate">{depositStats.pendingCount} টি</span>
               </div>
-              <div className="p-2.5 rounded-xl bg-[#070d17]/60 border border-slate-800">
-                <span className="text-[10px] text-slate-400 block">অনুমোদিত ডিপোজিট</span>
-                <span className="text-sm font-black text-white">{depositStats.approvedCount} টি</span>
+              <div className="p-2 sm:p-2.5 rounded-xl bg-[#070d17]/60 border border-slate-800">
+                <span className="text-[10px] text-slate-400 block truncate">অনুমোদিত ডিপোজিট</span>
+                <span className="text-xs sm:text-sm font-black text-white block truncate">{depositStats.approvedCount} টি</span>
               </div>
-              <div className="p-2.5 rounded-xl bg-[#070d17]/60 border border-slate-800">
-                <span className="text-[10px] text-slate-400 block">সর্বশেষ সিঙ্ক সময়</span>
-                <span className="text-[11px] font-mono text-slate-300">
+              <div className="p-2 sm:p-2.5 rounded-xl bg-[#070d17]/60 border border-slate-800">
+                <span className="text-[10px] text-slate-400 block truncate">সর্বশেষ সিঙ্ক সময়</span>
+                <span className="text-[10px] sm:text-[11px] font-mono text-slate-300 block truncate">
                   {lastSyncedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </span>
               </div>
@@ -802,11 +802,11 @@ export function StoreWalletPage({
                 {userRequests.slice(0, 4).map((req) => (
                   <div
                     key={req.id}
-                    className="p-3.5 sm:p-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] flex items-center justify-between shadow-sm hover:border-slate-700 transition"
+                    className="p-3 sm:p-4 rounded-2xl bg-[#0f172a] border border-[#1e293b] flex items-center justify-between shadow-sm hover:border-slate-700 transition gap-2 sm:gap-3 overflow-hidden"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
                       <div
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                        className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 ${
                           req.status === 'approved'
                             ? 'bg-emerald-500/20 text-emerald-400'
                             : req.status === 'rejected'
@@ -815,18 +815,18 @@ export function StoreWalletPage({
                         }`}
                       >
                         {req.status === 'approved' ? (
-                          <CheckCircle2 className="w-5 h-5" />
+                          <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
                         ) : req.status === 'rejected' ? (
-                          <XCircle className="w-5 h-5" />
+                          <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                         ) : (
-                          <Clock className="w-5 h-5" />
+                          <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
                         )}
                       </div>
-                      <div className="min-w-0">
-                        <div className="text-xs font-bold text-white flex items-center gap-2 flex-wrap">
-                          <span className="uppercase">{req.method} Deposit</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold text-white flex items-center gap-1.5 flex-wrap">
+                          <span className="uppercase text-[11px] sm:text-xs truncate max-w-[110px] sm:max-w-none">{req.method} Deposit</span>
                           <span
-                            className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
+                            className={`text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full font-black shrink-0 ${
                               req.status === 'approved'
                                 ? 'bg-emerald-500/20 text-emerald-400'
                                 : req.status === 'rejected'
@@ -837,19 +837,19 @@ export function StoreWalletPage({
                             {req.status === 'approved' ? 'সফল' : req.status === 'rejected' ? 'বাতিল' : 'অপেক্ষমান'}
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-400 mt-0.5 truncate font-mono">
+                        <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 truncate font-mono">
                           TrxID: {req.transactionId || 'N/A'} • {new Date(req.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
 
-                    <div className="text-right shrink-0">
-                      <span className="text-sm font-black text-[#00d293] block">
+                    <div className="text-right shrink-0 ml-1 sm:ml-2">
+                      <span className="text-xs sm:text-sm font-black text-[#00d293] block whitespace-nowrap">
                         +${Number(req.amount || 0).toFixed(2)} USDT
                       </span>
                       <button
                         onClick={() => setSelectedReceipt(req)}
-                        className="text-[10px] text-slate-400 hover:text-white underline cursor-pointer mt-0.5"
+                        className="text-[10px] text-slate-400 hover:text-white underline cursor-pointer mt-0.5 inline-block"
                       >
                         রসিদ দেখুন
                       </button>
@@ -1085,7 +1085,7 @@ export function StoreWalletPage({
             </div>
 
             {/* Custom Amount Field */}
-            <div className="pt-1 flex items-center gap-3">
+            <div className="pt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3">
               <div className="relative flex-1">
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-black text-amber-400">
                   $
@@ -1106,7 +1106,7 @@ export function StoreWalletPage({
               </div>
 
               {selectedGateway !== 'binance' && (
-                <div className="px-4 py-2 rounded-xl bg-[#0a0f1d] border border-slate-800 text-right min-w-[120px]">
+                <div className="px-4 py-2 rounded-xl bg-[#0a0f1d] border border-slate-800 flex sm:flex-col justify-between sm:justify-center items-center sm:items-end min-w-[120px]">
                   <span className="text-[10px] text-slate-400 block font-bold">পরিশোধ করতে হবে:</span>
                   <span className="text-sm font-black text-[#00d293]">
                     ৳{calculatedBdt.toLocaleString()} BDT
@@ -1513,11 +1513,11 @@ export function StoreWalletPage({
                 return (
                   <div
                     key={req.id}
-                    className="p-4 sm:p-5 rounded-2xl bg-[#0c1322] border border-slate-800/80 hover:border-slate-700 transition flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-md"
+                    className="p-3.5 sm:p-5 rounded-2xl bg-[#0c1322] border border-slate-800/80 hover:border-slate-700 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shadow-md overflow-hidden"
                   >
-                    <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                    <div className="flex items-start sm:items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
                       <div
-                        className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+                        className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl flex items-center justify-center shrink-0 ${
                           isApproved
                             ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                             : isRejected
@@ -1526,21 +1526,21 @@ export function StoreWalletPage({
                         }`}
                       >
                         {isApproved ? (
-                          <CheckCircle2 className="w-6 h-6" />
+                          <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" />
                         ) : isRejected ? (
-                          <XCircle className="w-6 h-6" />
+                          <XCircle className="w-5 h-5 sm:w-6 sm:h-6" />
                         ) : (
-                          <Clock className="w-6 h-6" />
+                          <Clock className="w-5 h-5 sm:w-6 sm:h-6" />
                         )}
                       </div>
 
-                      <div className="min-w-0 space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-black text-white uppercase">
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                          <span className="text-xs sm:text-sm font-black text-white uppercase truncate">
                             {req.method} Deposit
                           </span>
                           <span
-                            className={`text-[10px] px-2.5 py-0.5 rounded-full font-black flex items-center gap-1 ${
+                            className={`text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full font-black flex items-center gap-1 shrink-0 ${
                               isApproved
                                 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                                 : isRejected
@@ -1552,14 +1552,14 @@ export function StoreWalletPage({
                               isApproved ? 'bg-emerald-400' : isRejected ? 'bg-rose-400' : 'bg-amber-400 animate-ping'
                             }`} />
                             <span>
-                              {isApproved ? 'অনুমোদিত (Approved)' : isRejected ? 'বাতিল (Rejected)' : 'অপেক্ষমান (Pending)'}
+                              {isApproved ? 'অনুমোদিত' : isRejected ? 'বাতিল' : 'অপেক্ষমান'}
                             </span>
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2 text-xs text-slate-400 font-mono flex-wrap">
+                        <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-slate-400 font-mono flex-wrap">
                           <span>TrxID:</span>
-                          <span className="text-slate-200 font-bold bg-[#141f33] px-2 py-0.5 rounded border border-slate-700">
+                          <span className="text-slate-200 font-bold bg-[#141f33] px-1.5 py-0.5 rounded border border-slate-700 break-all text-[11px]">
                             {req.transactionId || 'N/A'}
                           </span>
                           <button
@@ -1576,7 +1576,7 @@ export function StoreWalletPage({
                         </div>
 
                         {req.senderIdentifier && (
-                          <p className="text-[11px] text-slate-400">
+                          <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">
                             প্রেরক: <span className="text-slate-300 font-mono">{req.senderIdentifier}</span>
                           </p>
                         )}
@@ -1587,19 +1587,19 @@ export function StoreWalletPage({
                       </div>
                     </div>
 
-                    <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-800 gap-2 shrink-0">
+                    <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 pt-2.5 sm:pt-0 border-slate-800 gap-2 shrink-0">
                       <div className="text-left sm:text-right">
-                        <span className="text-base sm:text-lg font-black text-[#00d293] block">
+                        <span className="text-sm sm:text-lg font-black text-[#00d293] block whitespace-nowrap">
                           +${Number(req.amount || 0).toFixed(2)} USDT
                         </span>
-                        <span className="text-[11px] text-slate-400 font-bold">
+                        <span className="text-[10px] sm:text-[11px] text-slate-400 font-bold block whitespace-nowrap">
                           ≈ ৳{(Number(req.amount || 0) * BDT_RATE).toLocaleString()} BDT
                         </span>
                       </div>
 
                       <button
                         onClick={() => setSelectedReceipt(req)}
-                        className="px-3 py-1.5 rounded-xl bg-[#141f33] hover:bg-[#1e2f4d] text-slate-200 hover:text-white text-xs font-bold flex items-center gap-1.5 border border-slate-700 cursor-pointer transition"
+                        className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#141f33] hover:bg-[#1e2f4d] text-slate-200 hover:text-white text-xs font-bold flex items-center gap-1.5 border border-slate-700 cursor-pointer transition shrink-0"
                       >
                         <Eye className="w-3.5 h-3.5 text-[#00d293]" />
                         <span>রসিদ দেখুন</span>
@@ -1616,13 +1616,13 @@ export function StoreWalletPage({
       {/* DEPOSIT SUCCESS CELEBRATION ANIMATION MODAL */}
       <AnimatePresence>
         {successAnimationData && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
             <motion.div
               initial={{ scale: 0.8, opacity: 0, y: 30 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.8, opacity: 0, y: 30 }}
               transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-              className="max-w-md w-full bg-gradient-to-b from-[#0e1829] via-[#09101c] to-[#05080f] border-2 border-emerald-500/50 rounded-3xl p-6 sm:p-8 text-center space-y-5 shadow-2xl relative overflow-hidden"
+              className="max-w-md w-full max-h-[90vh] overflow-y-auto bg-gradient-to-b from-[#0e1829] via-[#09101c] to-[#05080f] border-2 border-emerald-500/50 rounded-3xl p-5 sm:p-7 text-center space-y-4 shadow-2xl relative"
             >
               {/* Confetti & Glow FX */}
               <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-60 h-60 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
@@ -1632,9 +1632,9 @@ export function StoreWalletPage({
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.15, type: 'spring', stiffness: 200 }}
-                className="w-20 h-20 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center mx-auto shadow-xl shadow-emerald-500/40 relative"
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center mx-auto shadow-xl shadow-emerald-500/40 relative"
               >
-                <Check className="w-10 h-10 stroke-[3]" />
+                <Check className="w-8 h-8 sm:w-10 sm:h-10 stroke-[3]" />
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ repeat: Infinity, duration: 8, ease: 'linear' }}
@@ -1646,7 +1646,7 @@ export function StoreWalletPage({
                 <span className="text-[11px] font-black tracking-widest text-emerald-400 uppercase">
                   {successAnimationData.isAutomatic ? 'ইনস্ট্যান্ট পেমেন্ট সফল' : 'রিকোয়েস্ট জমা হয়েছে'}
                 </span>
-                <h3 className="text-2xl font-black text-white">
+                <h3 className="text-xl sm:text-2xl font-black text-white">
                   {successAnimationData.isAutomatic ? 'ডিপোজিট সফল হয়েছে!' : '🎉 রিকোয়েস্ট সফল!'}
                 </h3>
                 <p className="text-xs text-slate-300">
@@ -1657,9 +1657,9 @@ export function StoreWalletPage({
               </div>
 
               {/* Amount Display Box */}
-              <div className="p-4 rounded-2xl bg-[#0a1220] border border-emerald-500/30 space-y-1">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0a1220] border border-emerald-500/30 space-y-1">
                 <span className="text-[11px] font-bold text-slate-400">জমা হওয়া পরিমাণ:</span>
-                <div className="text-3xl sm:text-4xl font-black text-[#00d293]">
+                <div className="text-2xl sm:text-4xl font-black text-[#00d293]">
                   +${successAnimationData.amount.toFixed(2)} USDT
                 </div>
                 <span className="text-xs font-bold text-slate-400">
@@ -1674,9 +1674,9 @@ export function StoreWalletPage({
                   <span className="text-white font-bold">{successAnimationData.method}</span>
                 </div>
                 {successAnimationData.transactionId && (
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center gap-2">
                     <span className="text-slate-400">TrxID:</span>
-                    <span className="text-amber-300 font-bold">{successAnimationData.transactionId}</span>
+                    <span className="text-amber-300 font-bold truncate max-w-[200px]">{successAnimationData.transactionId}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
@@ -1688,14 +1688,14 @@ export function StoreWalletPage({
               </div>
 
               {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-3 pt-2">
+              <div className="grid grid-cols-2 gap-2.5 pt-1">
                 <button
                   type="button"
                   onClick={() => {
                     setSuccessAnimationData(null);
                     setView('history');
                   }}
-                  className="py-3 rounded-xl bg-[#141f33] hover:bg-[#1e2e4a] text-white font-bold text-xs border border-slate-700 cursor-pointer transition"
+                  className="py-2.5 sm:py-3 rounded-xl bg-[#141f33] hover:bg-[#1e2e4a] text-white font-bold text-xs border border-slate-700 cursor-pointer transition"
                 >
                   📜 হিস্ট্রি দেখুন
                 </button>
@@ -1705,7 +1705,7 @@ export function StoreWalletPage({
                     setSuccessAnimationData(null);
                     setView('overview');
                   }}
-                  className="py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-xs cursor-pointer shadow-lg transition hover:opacity-95"
+                  className="py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-xs cursor-pointer shadow-lg transition hover:opacity-95"
                 >
                   ওয়ালেটে যান
                 </button>
@@ -1717,8 +1717,8 @@ export function StoreWalletPage({
 
       {/* RECEIPT VIEW MODAL */}
       {selectedReceipt && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-[#0c1220] border border-slate-700 rounded-3xl p-6 shadow-2xl relative space-y-4">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="max-w-md w-full max-h-[90vh] overflow-y-auto bg-[#0c1220] border border-slate-700 rounded-3xl p-5 sm:p-6 shadow-2xl relative space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <Receipt className="w-5 h-5 text-[#00d293]" />
@@ -1757,12 +1757,12 @@ export function StoreWalletPage({
               </div>
               <div className="flex justify-between py-1.5 border-b border-slate-800 font-mono">
                 <span className="text-slate-400">Transaction ID:</span>
-                <span className="text-amber-300 font-bold">{selectedReceipt.transactionId || 'N/A'}</span>
+                <span className="text-amber-300 font-bold break-all text-right ml-2">{selectedReceipt.transactionId || 'N/A'}</span>
               </div>
               {selectedReceipt.senderIdentifier && (
                 <div className="flex justify-between py-1.5 border-b border-slate-800 font-mono">
                   <span className="text-slate-400">প্রেরক:</span>
-                  <span className="text-white">{selectedReceipt.senderIdentifier}</span>
+                  <span className="text-white break-all text-right ml-2">{selectedReceipt.senderIdentifier}</span>
                 </div>
               )}
               <div className="flex justify-between py-1.5 border-b border-slate-800">
@@ -1790,11 +1790,11 @@ export function StoreWalletPage({
       {/* FULL-SIZE IMAGE PREVIEW MODAL */}
       {previewImage && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer"
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto cursor-pointer"
           onClick={() => setPreviewImage(null)}
         >
           <div
-            className="max-w-md w-full bg-[#0d1424] border border-amber-500/40 rounded-3xl p-4 space-y-3 cursor-default"
+            className="max-w-md w-full max-h-[90vh] overflow-y-auto bg-[#0d1424] border border-amber-500/40 rounded-3xl p-4 space-y-3 cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
@@ -1825,8 +1825,8 @@ export function StoreWalletPage({
 
       {/* ACTIVE BINANCE ORDER CHECKOUT MODAL */}
       {activeBinanceOrder && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-[#0c1220] border border-amber-500/40 rounded-3xl p-6 shadow-2xl relative space-y-5">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="max-w-md w-full max-h-[90vh] overflow-y-auto bg-[#0c1220] border border-amber-500/40 rounded-3xl p-5 sm:p-6 shadow-2xl relative space-y-4">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2.5">
