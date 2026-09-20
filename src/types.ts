@@ -169,6 +169,11 @@ export interface PaymentSettings {
   binancePayId?: string;
   binanceId: string;
   binanceEnabled?: boolean;
+  binancePayApiEnabled?: boolean;
+  binancePayApiKey?: string;
+  binancePaySecretKey?: string;
+  binancePayMerchantId?: string;
+  hasBinanceCredentials?: boolean;
   bkashNumber: string;
   bkashEnabled?: boolean;
   nagadNumber: string;
@@ -177,6 +182,27 @@ export interface PaymentSettings {
   rocketEnabled?: boolean;
   instructionsBn?: string;
   instructionsEn?: string;
+}
+
+export interface BinancePayOrder {
+  orderId: string;
+  merchantTradeNo: string;
+  prepayId?: string;
+  checkoutUrl?: string;
+  deeplink?: string;
+  qrcodeLink?: string;
+  qrContent?: string;
+  amount: number;
+  currency: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  status: 'PENDING' | 'PAID' | 'EXPIRED' | 'CANCELED' | 'PROCESSING';
+  createdAt: string;
+  paidAt?: string;
+  isDirectMode?: boolean;
+  binancePayId?: string;
+  ipNotice?: string | null;
 }
 
 export interface SiteSettings {
