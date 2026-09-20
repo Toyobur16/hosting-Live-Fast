@@ -24,7 +24,8 @@ import {
   Code2,
   History,
   Tag,
-  Zap
+  Zap,
+  X
 } from 'lucide-react';
 import { HostedBot, AuthUser } from '../types';
 
@@ -68,17 +69,21 @@ export const BotList: React.FC<BotListProps> = ({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [botToDelete, setBotToDelete] = useState<HostedBot | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'running' | 'stopped'>('all');
 
   const formatUptime = (seconds: number) => {
     if (!seconds || seconds <= 0) return lang === 'bn' ? '০ সেকেন্ড' : '0s';
-    const hrs = Math.floor(seconds / 3600);
+    const days = Math.floor(seconds / 86400);
+    const hrs = Math.floor((seconds % 86400) / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
     if (lang === 'bn') {
+      if (days > 0) return `${days} দিন ${hrs} ঘণ্টা`;
       if (hrs > 0) return `${hrs} ঘণ্টা ${mins} মি.`;
       if (mins > 0) return `${mins} মিনিট ${secs} সে.`;
       return `${secs} সেকেন্ড`;
     }
+    if (days > 0) return `${days}d ${hrs}h`;
     if (hrs > 0) return `${hrs}h ${mins}m`;
     if (mins > 0) return `${mins}m ${secs}s`;
     return `${secs}s`;
@@ -93,15 +98,22 @@ export const BotList: React.FC<BotListProps> = ({
   };
 
   const filteredBots = useMemo(() => {
-    if (!searchQuery.trim()) return bots;
-    const q = searchQuery.toLowerCase();
-    return bots.filter(
+    let result = bots;
+    if (statusFilter === 'running') {
+      result = result.filter((b) => b.status === 'running');
+    } else if (statusFilter === 'stopped') {
+      result = result.filter((b) => b.status !== 'running');
+    }
+    if (!searchQuery.trim()) return result;
+    const q = searchQuery.toLowerCase().trim();
+    return result.filter(
       (b) =>
         b.name.toLowerCase().includes(q) ||
         (b.botUsername && b.botUsername.toLowerCase().includes(q)) ||
-        b.entryFile.toLowerCase().includes(q)
+        b.entryFile.toLowerCase().includes(q) ||
+        b.id.toLowerCase().includes(q)
     );
-  }, [bots, searchQuery]);
+  }, [bots, searchQuery, statusFilter]);
 
   const runningBotsCount = bots.filter((b) => b.status === 'running').length;
 
@@ -259,19 +271,88 @@ export const BotList: React.FC<BotListProps> = ({
           </div>
         </div>
 
-        {/* Quick Search if user has bots */}
-        {bots.length > 1 && (
-          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-[#1f293d] flex items-center">
-            <div className="relative w-full max-w-md">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={lang === 'bn' ? 'বটের নাম বা ইউজারনেম দিয়ে খুঁজুন...' : 'Search bots by name, username or file...'}
-                className="w-full pl-9.5 pr-4 py-2 text-xs rounded-xl bg-slate-50 dark:bg-[#0a0e1a] border border-slate-200 dark:border-[#1f293d] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-[#0088cc]"
-              />
+        {/* Quick Search & Status Filters */}
+        {bots.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-[#1f293d] space-y-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="relative flex-1 max-w-md">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={lang === 'bn' ? 'বটের নাম, আইডি বা ইউজারনেম দিয়ে খুঁজুন...' : 'Search bots by name, ID or username...'}
+                  className="w-full pl-9.5 pr-8 py-2.5 text-xs rounded-xl bg-slate-50 dark:bg-[#0a0e1a] border border-slate-200 dark:border-[#1f293d] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:border-[#0088cc] shadow-inner"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-1 cursor-pointer"
+                    title="Clear search"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Status Filter Chips */}
+              <div className="flex items-center gap-1.5 shrink-0 bg-slate-100 dark:bg-[#0c1220] p-1 rounded-xl border border-slate-200 dark:border-[#1f2d48] text-xs">
+                <button
+                  onClick={() => setStatusFilter('all')}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                    statusFilter === 'all'
+                      ? 'bg-[#0088cc] text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  {lang === 'bn' ? `সব বট (${bots.length})` : `All (${bots.length})`}
+                </button>
+                <button
+                  onClick={() => setStatusFilter('running')}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    statusFilter === 'running'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  <span>{lang === 'bn' ? `লাইভ (${runningBotsCount})` : `Live (${runningBotsCount})`}</span>
+                </button>
+                <button
+                  onClick={() => setStatusFilter('stopped')}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    statusFilter === 'stopped'
+                      ? 'bg-slate-700 text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                  <span>{lang === 'bn' ? `বন্ধ (${bots.length - runningBotsCount})` : `Stopped (${bots.length - runningBotsCount})`}</span>
+                </button>
+              </div>
             </div>
+
+            {/* Match Counter if filtered */}
+            {(searchQuery || statusFilter !== 'all') && (
+              <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 px-1">
+                <span>
+                  {lang === 'bn'
+                    ? `${filteredBots.length} টি বট পাওয়া গেছে`
+                    : `Showing ${filteredBots.length} of ${bots.length} bots`}
+                </span>
+                {(searchQuery || statusFilter !== 'all') && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setStatusFilter('all');
+                    }}
+                    className="text-[#0088cc] hover:underline font-semibold cursor-pointer"
+                  >
+                    {lang === 'bn' ? 'ফিল্টার মুছুন' : 'Reset filters'}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -413,6 +494,42 @@ export const BotList: React.FC<BotListProps> = ({
                           : 'STOPPED'}
                       </span>
                     </span>
+                  </div>
+
+                  {/* High-visibility Bot Uptime SLA Badge */}
+                  <div className="mb-3">
+                    {isRunning ? (
+                      <div className="flex items-center justify-between p-2 rounded-xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 shadow-xs">
+                        <div className="flex items-center gap-2 font-black text-[11px]">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                          </span>
+                          <span className="tracking-wide">99.9% UPTIME SLA</span>
+                        </div>
+                        <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                          ⚡ {formatUptime(bot.uptimeSeconds)}
+                        </span>
+                      </div>
+                    ) : isStarting ? (
+                      <div className="flex items-center justify-between p-2 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-600 dark:text-amber-400">
+                        <div className="flex items-center gap-2 font-bold text-[11px]">
+                          <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                          <span>INITIALIZING WORKER</span>
+                        </div>
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-amber-500/20">
+                          STARTING
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between p-2 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 text-slate-500 dark:text-slate-400">
+                        <div className="flex items-center gap-1.5 font-semibold text-[11px]">
+                          <span className="w-2 h-2 rounded-full bg-slate-400"></span>
+                          <span>STANDBY MODE</span>
+                        </div>
+                        <span className="text-[10px] font-medium">Ready to Start</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* 24/7 Cloud Details Box */}

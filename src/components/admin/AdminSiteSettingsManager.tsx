@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Image as ImageIcon, Save, RefreshCw, CheckCircle2, AlertCircle, Sparkles, Sliders } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Image as ImageIcon, Save, RefreshCw, CheckCircle2, AlertCircle, Sparkles, Sliders, Upload, Loader2, Trash2 } from 'lucide-react';
 import { SiteSettings } from '../../types';
 
 export function AdminSiteSettingsManager() {
@@ -11,7 +11,9 @@ export function AdminSiteSettingsManager() {
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchSettings();
@@ -34,6 +36,60 @@ export function AdminSiteSettingsManager() {
       // Fallback
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLogoFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setNotification({ type: 'error', text: 'শুধুমাত্র ইমেজ ফাইল (PNG, JPG, WebP, SVG) আপলোড করা যাবে।' });
+      return;
+    }
+
+    try {
+      setUploadingLogo(true);
+      setNotification(null);
+      const token = localStorage.getItem('bot_auth_token');
+
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64Data = reader.result as string;
+          const res = await fetch('/api/admin/upload-file', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              fileName: file.name,
+              fileData: base64Data,
+              fileType: 'site_logo'
+            })
+          });
+
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setSettings((prev) => ({
+              ...prev,
+              logoUrl: data.url
+            }));
+            setNotification({ type: 'success', text: 'লোগো ছবি সফলভাবে আপলোড হয়েছে! নিচে সেভ বাটনে ক্লিক করুন।' });
+          } else {
+            setNotification({ type: 'error', text: data.error || 'ছবি আপলোড ব্যর্থ হয়েছে।' });
+          }
+        } catch (err: any) {
+          setNotification({ type: 'error', text: err.message || 'আপলোড এরর' });
+        } finally {
+          setUploadingLogo(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      setNotification({ type: 'error', text: err.message || 'আপলোড এরর' });
+      setUploadingLogo(false);
     }
   };
 
@@ -142,8 +198,63 @@ export function AdminSiteSettingsManager() {
       <form onSubmit={handleSave} className="space-y-4">
         <div>
           <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-            লোগো ছবির ইউআরএল (Logo Image URL বা লোকাল পাথ)
+            সাইটের লোগো পিকচার (Site Logo / Name Picture - Direct Upload)
           </label>
+
+          {/* Direct File Upload Card */}
+          <div className="p-4 rounded-xl bg-slate-900/60 border-2 border-dashed border-amber-500/40 hover:border-amber-400 transition-colors mb-3">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20">
+                  {uploadingLogo ? (
+                    <Loader2 className="w-6 h-6 animate-spin text-amber-400" />
+                  ) : (
+                    <Upload className="w-6 h-6 text-amber-400" />
+                  )}
+                </div>
+                <div>
+                  <div className="text-xs font-black text-white flex items-center gap-2">
+                    <span>সরাসরি আপনার ডিভাইস থেকে ছবি আপলোড করুন</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      Direct File Upload
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    JPG, PNG, WebP বা SVG ফরম্যাটের ছবি সিলেক্ট করলেই সাথে সাথে লোগো হিসেবে সেট হবে।
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleLogoFileUpload}
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingLogo}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-50"
+                >
+                  {uploadingLogo ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>আপলোড হচ্ছে...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      <span>📁 ছবি বেছে নিন (Upload Logo)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div className="flex flex-wrap items-center gap-2">
             <input
               type="text"
@@ -158,8 +269,8 @@ export function AdminSiteSettingsManager() {
                 }
                 setSettings({ ...settings, logoUrl: val });
               }}
-              placeholder="https://... বা /site-logo.png"
-              className="flex-1 min-w-[220px] px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b14] border border-slate-200 dark:border-[#162035] text-xs font-medium text-slate-900 dark:text-white focus:outline-hidden focus:border-amber-500"
+              placeholder="বা ছবির ইউআরএল দিন: https://... অথবা /site-logo.png"
+              className="flex-1 min-w-[220px] px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b14] border border-slate-200 dark:border-[#162035] text-xs font-medium text-slate-900 dark:text-white focus:outline-hidden focus:border-amber-500 font-mono"
             />
             <button
               type="button"
@@ -184,7 +295,7 @@ export function AdminSiteSettingsManager() {
             </button>
           </div>
           <p className="text-[11px] text-slate-500 mt-1">
-            টিপস: আপনি সরাসরি যেকোনো ইমেজ লিংক (যেমন <code className="text-amber-500 font-mono">https://.../image.png</code>) বা সিস্টেমের লোগো দিতে পারেন।
+            টিপস: আপনি সরাসরি ফাইল আপলোড করতে পারেন অথবা যেকোনো ইমেজ লিংক (URL) পেস্ট করতে পারেন।
           </p>
         </div>
 

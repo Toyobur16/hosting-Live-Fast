@@ -1,0 +1,22 @@
+[
+  {
+    "orderId": "ord_1789934875127_5htr",
+    "merchantTradeNo": "BP17899348751273821",
+    "prepayId": "DIRECT_ord_1789934875127_5htr",
+    "checkoutUrl": "https://app.binance.com/qr/dop?id=922593999",
+    "deeplink": "binance://payment/pay?merchantId=922593999&amount=100.00",
+    "qrcodeLink": "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=https%3A%2F%2Fapp.binance.com%2Fqr%2Fdop%3Fid%3D922593999",
+    "qrContent": "https://app.binance.com/qr/dop?id=922593999",
+    "expireTime": 1789938475555,
+    "amount": 100,
+    "currency": "USDT",
+    "userId": "user_1789353285319_jos3",
+    "userName": "Toyobur Rahman Test",
+    "userEmail": "toyoburrahman560@gmail.com",
+    "binancePayId": "922593999",
+    "status": "PENDING",
+    "isDirectMode": true,
+    "ipNotice": "34.96.48.13",
+    "createdAt": "2026-09-20T20:07:55.555Z"
+  }
+]

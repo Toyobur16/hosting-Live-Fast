@@ -475,7 +475,7 @@ function getRegistry(): any[] {
 }
 
 function saveRegistry(data: any[]) {
-  fs.writeFileSync(REGISTRY_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  fs.writeFileSync(REGISTRY_FILE, JSON.stringify(data, null, 2) + '\n', 'utf-8');
 }
 
 // Bot Deployment History Helpers
@@ -595,7 +595,7 @@ function getAccounts(): any[] {
 
 function saveAccounts(data: any[]) {
   try {
-    fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify(data, null, 2) + '\n', 'utf-8');
   } catch (err) {
     console.error('Failed to save accounts:', err);
   }
@@ -611,7 +611,7 @@ function getSessions(): Record<string, string> {
 
 function saveSessions(data: Record<string, string>) {
   try {
-    fs.writeFileSync(SESSIONS_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    fs.writeFileSync(SESSIONS_FILE, JSON.stringify(data, null, 2) + '\n', 'utf-8');
   } catch (err) {
     console.error('Failed to save sessions:', err);
   }
@@ -630,7 +630,7 @@ function getPlans(): any[] {
 }
 
 function savePlans(data: any[]) {
-  fs.writeFileSync(PLANS_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  fs.writeFileSync(PLANS_FILE, JSON.stringify(data, null, 2) + '\n', 'utf-8');
 }
 
 function getPlanRequests(): any[] {
@@ -642,7 +642,7 @@ function getPlanRequests(): any[] {
 }
 
 function savePlanRequests(data: any[]) {
-  fs.writeFileSync(PLAN_REQUESTS_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  fs.writeFileSync(PLAN_REQUESTS_FILE, JSON.stringify(data, null, 2) + '\n', 'utf-8');
 }
 
 function getPaymentSettings(): any {
@@ -655,7 +655,7 @@ function getPaymentSettings(): any {
 }
 
 function savePaymentSettings(data: any) {
-  fs.writeFileSync(PAYMENT_SETTINGS_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  fs.writeFileSync(PAYMENT_SETTINGS_FILE, JSON.stringify(data, null, 2) + '\n', 'utf-8');
 }
 
 function getBinanceOrders(): any[] {
@@ -670,7 +670,7 @@ function getBinanceOrders(): any[] {
 }
 
 function saveBinanceOrders(data: any[]) {
-  fs.writeFileSync(BINANCE_ORDERS_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  fs.writeFileSync(BINANCE_ORDERS_FILE, JSON.stringify(data, null, 2) + '\n', 'utf-8');
 }
 
 function getBinanceCredentials() {
@@ -1940,6 +1940,85 @@ app.post('/api/wallet/deposit', (req, res) => {
   });
 });
 
+// User deposit history endpoint (combines manual deposits and Binance Pay orders)
+app.get('/api/wallet/my-deposits', (req, res) => {
+  const user = getAuthUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const allRequests = getPlanRequests();
+  const userManualDeposits = allRequests
+    .filter(
+      (r) =>
+        (r.userId === user.id || (r.userEmail && r.userEmail.toLowerCase() === user.email.toLowerCase())) &&
+        (r.type === 'deposit' || r.planId === 'wallet_deposit' || !r.planId)
+    )
+    .map((r) => ({
+      id: r.id,
+      userId: r.userId,
+      userName: r.userName,
+      userEmail: r.userEmail,
+      amount: r.amount,
+      currency: r.currency || 'USD',
+      method: r.method || 'manual',
+      senderIdentifier: r.senderIdentifier || r.senderNumber || '',
+      transactionId: r.transactionId,
+      note: r.note || '',
+      status: r.status,
+      createdAt: r.createdAt,
+      reviewedAt: r.reviewedAt,
+      reviewedBy: r.reviewedBy
+    }));
+
+  const binanceOrders = getBinanceOrders();
+  const userBinanceOrders = binanceOrders
+    .filter(
+      (o) =>
+        o.userId === user.id ||
+        (o.userEmail && o.userEmail.toLowerCase() === user.email.toLowerCase())
+    )
+    .map((o) => ({
+      id: o.orderId,
+      userId: o.userId,
+      userName: o.userName,
+      userEmail: o.userEmail,
+      amount: o.amount,
+      currency: o.currency || 'USD',
+      method: 'binance',
+      senderIdentifier: o.userName || o.userEmail || 'Binance Pay',
+      transactionId: o.merchantTradeNo || o.prepayId || o.orderId,
+      note: o.isDirectMode ? 'Binance Pay Direct' : 'Binance Pay Automated Gateway',
+      status: o.status === 'PAID' ? 'approved' : o.status === 'CANCELED' || o.status === 'EXPIRED' ? 'rejected' : 'pending',
+      createdAt: o.createdAt,
+      reviewedAt: o.paidAt,
+      reviewedBy: 'Binance Pay Gateway'
+    }));
+
+  const seenKeys = new Set<string>();
+  const combined: any[] = [];
+
+  for (const item of [...userManualDeposits, ...userBinanceOrders]) {
+    const key = item.transactionId ? `trx_${item.transactionId}` : `id_${item.id}`;
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      combined.push(item);
+    }
+  }
+
+  combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const accounts = getAccounts();
+  const liveUser = accounts.find((a) => a.id === user.id || a.email.toLowerCase() === user.email.toLowerCase());
+
+  res.json({
+    success: true,
+    deposits: combined,
+    balanceUsd: liveUser?.balanceUsd ?? user.balanceUsd ?? 0,
+    balanceBdt: liveUser?.balanceBdt ?? user.balanceBdt ?? 0
+  });
+});
+
 // Binance Pay Instant Deposit Endpoints
 app.post('/api/binance-pay/create-order', async (req, res) => {
   const user = getAuthUser(req);
@@ -3206,10 +3285,20 @@ app.post('/api/admin/upload-file', (req, res) => {
     const cleanName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
     const timestamp = Date.now();
 
-    if (fileType === 'thumbnail') {
-      const storedFileName = `thumb_${timestamp}_${cleanName}`;
+    const isImage = fileType === 'thumbnail' || fileType === 'image' || fileType === 'payment_qr' || fileType === 'site_logo' || fileType === 'logo' || /\.(png|jpe?g|webp|gif|svg|ico)$/i.test(fileName);
+    if (isImage) {
+      const storedFileName = `img_${timestamp}_${cleanName}`;
       const destPath = path.join(STORE_THUMBNAILS_DIR, storedFileName);
       fs.writeFileSync(destPath, buffer);
+
+      // If it's a site logo, also mirror it to public/site-logo.png
+      if (fileType === 'site_logo') {
+        try {
+          const publicLogo = path.join(process.cwd(), 'public', 'site-logo.png');
+          fs.writeFileSync(publicLogo, buffer);
+        } catch {}
+      }
+
       return res.json({
         success: true,
         url: `/api/store/thumbnails/${storedFileName}`,

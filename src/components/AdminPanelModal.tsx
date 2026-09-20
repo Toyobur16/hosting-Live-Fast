@@ -4,9 +4,10 @@ import {
   RefreshCw, Bot, CreditCard, DollarSign, Settings, AlertTriangle,
   Play, Square, RotateCw, Trash2, Check, Copy, ExternalLink, ShieldAlert,
   Plus, Wallet, ArrowRight, Link, ShoppingBag, Sparkles, Folder, Headphones, BellRing,
-  Mail, ArrowUp, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, BarChart3, Layers, Sliders
+  Mail, ArrowUp, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, BarChart3, Layers, Sliders,
+  Upload, Image as ImageIcon, Loader2
 } from 'lucide-react';
-import { PlanRequest, AuthUser, HostedBot, PaymentSettings, HostingPlan, FreeTrialSettings } from '../types';
+import { PlanRequest, AuthUser, HostedBot, PaymentSettings, HostingPlan, FreeTrialSettings, CustomDepositMethod } from '../types';
 import { AdminBannersManager } from './admin/AdminBannersManager';
 import { AdminSupportManager } from './admin/AdminSupportManager';
 import { AdminNoticesManager } from './admin/AdminNoticesManager';
@@ -70,6 +71,51 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const [binanceTestResult, setBinanceTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [copiedServerIp, setCopiedServerIp] = useState(false);
+  const [uploadingQrField, setUploadingQrField] = useState<string | null>(null);
+
+  const handleUploadPaymentImage = async (file: File, fieldKey: string, callback: (url: string) => void) => {
+    if (!file.type.startsWith('image/')) {
+      setNotification({ type: 'error', message: 'শুধুমাত্র ইমেজ ফাইল আপলোড করা যাবে।' });
+      return;
+    }
+    try {
+      setUploadingQrField(fieldKey);
+      const token = localStorage.getItem('bot_auth_token');
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64Data = reader.result as string;
+          const res = await fetch('/api/admin/upload-file', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              fileName: file.name,
+              fileData: base64Data,
+              fileType: 'payment_qr'
+            })
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            callback(data.url);
+            setNotification({ type: 'success', message: 'পেমেন্ট মেথড ছবি/কিউআর সফলভাবে আপলোড হয়েছে!' });
+          } else {
+            setNotification({ type: 'error', message: data.error || 'আপলোড ব্যর্থ হয়েছে।' });
+          }
+        } catch (err: any) {
+          setNotification({ type: 'error', message: err.message || 'আপলোড এরর' });
+        } finally {
+          setUploadingQrField(null);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      setNotification({ type: 'error', message: err.message || 'আপলোড এরর' });
+      setUploadingQrField(null);
+    }
+  };
 
   // Add Plan Form State (support string typing so zero can be deleted cleanly)
   const [showAddPlanForm, setShowAddPlanForm] = useState(false);
@@ -1650,94 +1696,465 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
             {/* Manual Deposits fallback title */}
             <div className="pt-2">
-              <h4 className="text-xs font-black text-slate-300 uppercase tracking-wider mb-2">
-                📋 ম্যানুয়াল ডিপোজিট তথ্য (Manual Fallback Settings)
-              </h4>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-black text-slate-200 uppercase tracking-wider">
+                    📋 ডিপোজিট মেথড ও কিউআর কোড সেটিংস (Deposit Methods & QR Codes)
+                  </h4>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    প্রতিটি মেথডের জন্য সরাসরি ছবি বা QR কোড আপলোড করতে পারবেন। ব্যবহারকারীরা ডিপোজিট করার সময় এই ছবি দেখতে পাবেন।
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div>
-                <label className="block font-bold text-slate-300 mb-1">
-                  bKash (বিকাশ) একাউন্ট নাম্বার:
-                </label>
+              {/* bKash */}
+              <div className="p-3 rounded-xl bg-[#090e18] border border-[#1f2d48] space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-pink-400 flex items-center gap-1.5">
+                    <span>bKash (বিকাশ) একাউন্ট:</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={paymentSettings.bkashEnabled !== false}
+                      onChange={(e) => setPaymentSettings({ ...paymentSettings, bkashEnabled: e.target.checked })}
+                      className="accent-pink-500 rounded"
+                    />
+                    <span>সক্রিয়</span>
+                  </label>
+                </div>
                 <input
                   type="text"
                   value={paymentSettings.bkashNumber}
                   onChange={(e) => setPaymentSettings({ ...paymentSettings, bkashNumber: e.target.value })}
-                  placeholder="01711223344 (Personal - Send Money)"
-                  className="w-full bg-[#090e18] border border-[#1f2d48] rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#0088cc]"
+                  placeholder="01711223344 (Send Money / Merchant)"
+                  className="w-full bg-[#05080f] border border-[#1f2d48] rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-pink-500"
                 />
+                <div className="flex items-center gap-2 pt-1">
+                  {paymentSettings.bkashQrUrl ? (
+                    <div className="flex items-center gap-2 flex-1 min-w-0 bg-[#0d1524] p-1.5 rounded-lg border border-[#1f2d48]">
+                      <img src={paymentSettings.bkashQrUrl} alt="bKash QR" className="w-8 h-8 rounded object-cover border border-[#2b3d60]" />
+                      <span className="text-[10px] text-slate-400 truncate flex-1">QR কোড যুক্ত আছে</span>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentSettings({ ...paymentSettings, bkashQrUrl: '' })}
+                        className="text-rose-400 hover:text-rose-300 p-1 cursor-pointer"
+                        title="রিমুভ করুন"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-slate-500 flex-1">QR বা পিকচার নেই</span>
+                  )}
+                  <label className="px-2.5 py-1.5 rounded-lg bg-pink-500/20 hover:bg-pink-500/30 text-pink-300 border border-pink-500/30 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition shrink-0">
+                    {uploadingQrField === 'bkash' ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Upload className="w-3 h-3" />
+                    )}
+                    <span>{paymentSettings.bkashQrUrl ? 'পরিবর্তন' : 'পিকচার আপলোড'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleUploadPaymentImage(f, 'bkash', (url) => setPaymentSettings((prev) => ({ ...prev, bkashQrUrl: url })));
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
 
-              <div>
-                <label className="block font-bold text-slate-300 mb-1">
-                  Nagad (নগদ) একাউন্ট নাম্বার:
-                </label>
+              {/* Nagad */}
+              <div className="p-3 rounded-xl bg-[#090e18] border border-[#1f2d48] space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-orange-400 flex items-center gap-1.5">
+                    <span>Nagad (নগদ) একাউন্ট:</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={paymentSettings.nagadEnabled !== false}
+                      onChange={(e) => setPaymentSettings({ ...paymentSettings, nagadEnabled: e.target.checked })}
+                      className="accent-orange-500 rounded"
+                    />
+                    <span>সক্রিয়</span>
+                  </label>
+                </div>
                 <input
                   type="text"
                   value={paymentSettings.nagadNumber}
                   onChange={(e) => setPaymentSettings({ ...paymentSettings, nagadNumber: e.target.value })}
-                  placeholder="01811223344 (Personal - Send Money)"
-                  className="w-full bg-[#090e18] border border-[#1f2d48] rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#0088cc]"
+                  placeholder="01811223344 (Send Money / Merchant)"
+                  className="w-full bg-[#05080f] border border-[#1f2d48] rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-orange-500"
                 />
+                <div className="flex items-center gap-2 pt-1">
+                  {paymentSettings.nagadQrUrl ? (
+                    <div className="flex items-center gap-2 flex-1 min-w-0 bg-[#0d1524] p-1.5 rounded-lg border border-[#1f2d48]">
+                      <img src={paymentSettings.nagadQrUrl} alt="Nagad QR" className="w-8 h-8 rounded object-cover border border-[#2b3d60]" />
+                      <span className="text-[10px] text-slate-400 truncate flex-1">QR কোড যুক্ত আছে</span>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentSettings({ ...paymentSettings, nagadQrUrl: '' })}
+                        className="text-rose-400 hover:text-rose-300 p-1 cursor-pointer"
+                        title="রিমুভ করুন"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-slate-500 flex-1">QR বা পিকচার নেই</span>
+                  )}
+                  <label className="px-2.5 py-1.5 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 border border-orange-500/30 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition shrink-0">
+                    {uploadingQrField === 'nagad' ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Upload className="w-3 h-3" />
+                    )}
+                    <span>{paymentSettings.nagadQrUrl ? 'পরিবর্তন' : 'পিকচার আপলোড'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleUploadPaymentImage(f, 'nagad', (url) => setPaymentSettings((prev) => ({ ...prev, nagadQrUrl: url })));
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
 
-              <div>
-                <label className="block font-bold text-slate-300 mb-1">
-                  Rocket (রকেট) একাউন্ট নাম্বার:
-                </label>
+              {/* Rocket */}
+              <div className="p-3 rounded-xl bg-[#090e18] border border-[#1f2d48] space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-purple-400 flex items-center gap-1.5">
+                    <span>Rocket (রকেট) একাউন্ট:</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={paymentSettings.rocketEnabled !== false}
+                      onChange={(e) => setPaymentSettings({ ...paymentSettings, rocketEnabled: e.target.checked })}
+                      className="accent-purple-500 rounded"
+                    />
+                    <span>সক্রিয়</span>
+                  </label>
+                </div>
                 <input
                   type="text"
                   value={paymentSettings.rocketNumber}
                   onChange={(e) => setPaymentSettings({ ...paymentSettings, rocketNumber: e.target.value })}
-                  placeholder="01911223344 (Personal - Send Money)"
-                  className="w-full bg-[#090e18] border border-[#1f2d48] rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#0088cc]"
+                  placeholder="01911223344 (Send Money)"
+                  className="w-full bg-[#05080f] border border-[#1f2d48] rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-purple-500"
                 />
+                <div className="flex items-center gap-2 pt-1">
+                  {paymentSettings.rocketQrUrl ? (
+                    <div className="flex items-center gap-2 flex-1 min-w-0 bg-[#0d1524] p-1.5 rounded-lg border border-[#1f2d48]">
+                      <img src={paymentSettings.rocketQrUrl} alt="Rocket QR" className="w-8 h-8 rounded object-cover border border-[#2b3d60]" />
+                      <span className="text-[10px] text-slate-400 truncate flex-1">QR কোড যুক্ত আছে</span>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentSettings({ ...paymentSettings, rocketQrUrl: '' })}
+                        className="text-rose-400 hover:text-rose-300 p-1 cursor-pointer"
+                        title="রিমুভ করুন"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-slate-500 flex-1">QR বা পিকচার নেই</span>
+                  )}
+                  <label className="px-2.5 py-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition shrink-0">
+                    {uploadingQrField === 'rocket' ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Upload className="w-3 h-3" />
+                    )}
+                    <span>{paymentSettings.rocketQrUrl ? 'পরিবর্তন' : 'পিকচার আপলোড'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleUploadPaymentImage(f, 'rocket', (url) => setPaymentSettings((prev) => ({ ...prev, rocketQrUrl: url })));
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
 
-              <div>
-                <label className="block font-bold text-slate-300 mb-1">
-                  Binance USDT Wallet (TRC20):
-                </label>
+              {/* Binance USDT */}
+              <div className="p-3 rounded-xl bg-[#090e18] border border-[#1f2d48] space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-amber-400 flex items-center gap-1.5">
+                    <span>Binance Pay / UID / USDT Wallet:</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={paymentSettings.binanceEnabled !== false}
+                      onChange={(e) => setPaymentSettings({ ...paymentSettings, binanceEnabled: e.target.checked })}
+                      className="accent-amber-500 rounded"
+                    />
+                    <span>সক্রিয়</span>
+                  </label>
+                </div>
                 <input
                   type="text"
-                  value={paymentSettings.binanceId}
-                  onChange={(e) => setPaymentSettings({ ...paymentSettings, binanceId: e.target.value })}
-                  placeholder="TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE"
-                  className="w-full bg-[#090e18] border border-[#1f2d48] rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#0088cc]"
+                  value={paymentSettings.binancePayId || paymentSettings.binanceUid || paymentSettings.binanceId}
+                  onChange={(e) => setPaymentSettings({ ...paymentSettings, binancePayId: e.target.value, binanceUid: e.target.value })}
+                  placeholder="849201948 (Binance Pay ID / UID)"
+                  className="w-full bg-[#05080f] border border-[#1f2d48] rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
                 />
+                <div className="flex items-center gap-2 pt-1">
+                  {paymentSettings.binanceQrUrl ? (
+                    <div className="flex items-center gap-2 flex-1 min-w-0 bg-[#0d1524] p-1.5 rounded-lg border border-[#1f2d48]">
+                      <img src={paymentSettings.binanceQrUrl} alt="Binance QR" className="w-8 h-8 rounded object-cover border border-[#2b3d60]" />
+                      <span className="text-[10px] text-slate-400 truncate flex-1">QR কোড যুক্ত আছে</span>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentSettings({ ...paymentSettings, binanceQrUrl: '' })}
+                        className="text-rose-400 hover:text-rose-300 p-1 cursor-pointer"
+                        title="রিমুভ করুন"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-slate-500 flex-1">QR বা পিকচার নেই</span>
+                  )}
+                  <label className="px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition shrink-0">
+                    {uploadingQrField === 'binance' ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Upload className="w-3 h-3" />
+                    )}
+                    <span>{paymentSettings.binanceQrUrl ? 'পরিবর্তন' : 'পিকচার আপলোড'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleUploadPaymentImage(f, 'binance', (url) => setPaymentSettings((prev) => ({ ...prev, binanceQrUrl: url })));
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Custom Deposit Methods Section with Direct Picture Upload */}
+            <div className="p-4 rounded-2xl bg-[#080d18] border border-[#1f2d48] space-y-3 mt-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h5 className="text-xs font-black text-amber-400 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>কাস্টম ডিপোজিট মেথড (Direct Picture Upload সহ)</span>
+                  </h5>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    আপনি নিজের পছন্দমতো যেকোনো মেথড (যেমন: Upay, Bank, Cash, Agent) সরাসরি পিকচার বা QR আপলোড করে যোগ করতে পারবেন।
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newId = `cm_${Date.now()}`;
+                    const currentList = paymentSettings.customMethods || [];
+                    setPaymentSettings({
+                      ...paymentSettings,
+                      customMethods: [
+                        ...currentList,
+                        {
+                          id: newId,
+                          name: '',
+                          type: 'custom',
+                          account: '',
+                          imageUrl: '',
+                          instructions: '',
+                          enabled: true
+                        }
+                      ]
+                    });
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1 shadow-md cursor-pointer transition shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>নতুন মেথড যোগ করুন</span>
+                </button>
               </div>
 
-              <div>
-                <label className="block font-bold text-amber-400 mb-1">
-                  Binance UID (বাইন্যান্স ইউজার আইডি):
-                </label>
-                <input
-                  type="text"
-                  value={paymentSettings.binanceUid || ''}
-                  onChange={(e) => setPaymentSettings({ ...paymentSettings, binanceUid: e.target.value })}
-                  placeholder="849201948 (Personal Binance UID)"
-                  className="w-full bg-[#090e18] border border-[#1f2d48] rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-amber-400"
-                />
-              </div>
+              {(!paymentSettings.customMethods || paymentSettings.customMethods.length === 0) ? (
+                <div className="py-4 text-center text-xs text-slate-500 border border-dashed border-[#1f2d48] rounded-xl">
+                  বর্তমানে কোনো কাস্টম ডিপোজিট মেথড নেই। উপরে "নতুন মেথড যোগ করুন" বাটনে ক্লিক করে সরাসরি পিকচার সহ মেথড যুক্ত করুন।
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {paymentSettings.customMethods.map((cm, idx) => (
+                    <div key={cm.id || idx} className="p-3.5 rounded-xl bg-[#0b1220] border border-[#1f2d48] space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-black flex items-center justify-center">
+                            {idx + 1}
+                          </span>
+                          <span className="text-xs font-bold text-white">
+                            {cm.name ? cm.name : 'নতুন ডিপোজিট মেথড'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <label className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-300">
+                            <input
+                              type="checkbox"
+                              checked={cm.enabled !== false}
+                              onChange={(e) => {
+                                const list = [...(paymentSettings.customMethods || [])];
+                                list[idx] = { ...list[idx], enabled: e.target.checked };
+                                setPaymentSettings({ ...paymentSettings, customMethods: list });
+                              }}
+                              className="accent-amber-500 rounded"
+                            />
+                            <span>সক্রিয়</span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const list = (paymentSettings.customMethods || []).filter((_, i) => i !== idx);
+                              setPaymentSettings({ ...paymentSettings, customMethods: list });
+                            }}
+                            className="p-1 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded cursor-pointer transition"
+                            title="মেথড ডিলিট করুন"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
 
-              <div>
-                <label className="block font-bold text-amber-400 mb-1">
-                  Binance Pay ID (বাইন্যান্স পে আইডি):
-                </label>
-                <input
-                  type="text"
-                  value={paymentSettings.binancePayId || ''}
-                  onChange={(e) => setPaymentSettings({ ...paymentSettings, binancePayId: e.target.value })}
-                  placeholder="849201948 (Binance Pay ID)"
-                  className="w-full bg-[#090e18] border border-[#1f2d48] rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-amber-400"
-                />
-              </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                            মেথডের নাম (Method Name):
+                          </label>
+                          <input
+                            type="text"
+                            value={cm.name}
+                            onChange={(e) => {
+                              const list = [...(paymentSettings.customMethods || [])];
+                              list[idx] = { ...list[idx], name: e.target.value };
+                              setPaymentSettings({ ...paymentSettings, customMethods: list });
+                            }}
+                            placeholder="যেমন: Upay (উপায়) বা Bank Asia"
+                            className="w-full bg-[#05080f] border border-[#1f2d48] rounded-xl p-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                            একাউন্ট নাম্বার / তথ্য (Account Number / Details):
+                          </label>
+                          <input
+                            type="text"
+                            value={cm.account}
+                            onChange={(e) => {
+                              const list = [...(paymentSettings.customMethods || [])];
+                              list[idx] = { ...list[idx], account: e.target.value };
+                              setPaymentSettings({ ...paymentSettings, customMethods: list });
+                            }}
+                            placeholder="যেমন: 01XXXXXXXXX"
+                            className="w-full bg-[#05080f] border border-[#1f2d48] rounded-xl p-2 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Picture / QR Code Upload for this custom method */}
+                      <div className="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-lg bg-[#070b14] border border-[#162032]">
+                        <div className="flex items-center gap-2.5">
+                          {cm.imageUrl ? (
+                            <img src={cm.imageUrl} alt={cm.name} className="w-10 h-10 rounded-lg object-cover border border-amber-500/30" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-400">
+                              <ImageIcon className="w-5 h-5" />
+                            </div>
+                          )}
+                          <div>
+                            <div className="text-[11px] font-bold text-slate-200">
+                              মেথডের ছবি / কিউআর কোড (Direct Image / QR)
+                            </div>
+                            <div className="text-[10px] text-slate-400">
+                              {cm.imageUrl ? 'ছবি যুক্ত আছে (সরাসরি ডিপোজিট পেজে দেখাবে)' : 'কোনো ছবি যুক্ত নেই (পিকচার আপলোড বাটনে ক্লিক করুন)'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {cm.imageUrl && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const list = [...(paymentSettings.customMethods || [])];
+                                list[idx] = { ...list[idx], imageUrl: '' };
+                                setPaymentSettings({ ...paymentSettings, customMethods: list });
+                              }}
+                              className="px-2.5 py-1 text-[11px] rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 cursor-pointer"
+                            >
+                              রিমুভ
+                            </button>
+                          )}
+                          <label className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[11px] flex items-center gap-1.5 cursor-pointer shadow transition">
+                            {uploadingQrField === `custom_${idx}` ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Upload className="w-3.5 h-3.5" />
+                            )}
+                            <span>{cm.imageUrl ? 'ছবি পরিবর্তন' : '📷 ডাইরেক্ট পিক আপলোড'}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const f = e.target.files?.[0];
+                                if (f) {
+                                  handleUploadPaymentImage(f, `custom_${idx}`, (url) => {
+                                    const list = [...(paymentSettings.customMethods || [])];
+                                    list[idx] = { ...list[idx], imageUrl: url };
+                                    setPaymentSettings({ ...paymentSettings, customMethods: list });
+                                  });
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                          বিশেষ নির্দেশনা (ঐচ্ছিক):
+                        </label>
+                        <input
+                          type="text"
+                          value={cm.instructions || ''}
+                          onChange={(e) => {
+                            const list = [...(paymentSettings.customMethods || [])];
+                            list[idx] = { ...list[idx], instructions: e.target.value };
+                            setPaymentSettings({ ...paymentSettings, customMethods: list });
+                          }}
+                          placeholder="যেমন: Send Money করে TrxID ও আপনার নাম্বার দিন"
+                          className="w-full bg-[#05080f] border border-[#1f2d48] rounded-xl p-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
               <label className="block font-bold text-slate-300 mb-1 text-xs">
-                পেমেন্ট নির্দেশাবলী (Payment Instructions):
+                সাধারণ পেমেন্ট নির্দেশাবলী (General Payment Instructions):
               </label>
               <textarea
                 rows={3}
@@ -1753,7 +2170,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                 disabled={actionLoadingId === 'save_payments'}
                 className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white font-bold text-xs shadow-md cursor-pointer transition-all disabled:opacity-50"
               >
-                {actionLoadingId === 'save_payments' ? 'সংরক্ষণ হচ্ছে...' : 'পেমেন্ট নাম্বার সংরক্ষণ করুন'}
+                {actionLoadingId === 'save_payments' ? 'সংরক্ষণ হচ্ছে...' : 'পেমেন্ট মেথড ও সেটিংস সংরক্ষণ করুন'}
               </button>
             </div>
           </form>

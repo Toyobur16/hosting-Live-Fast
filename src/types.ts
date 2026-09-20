@@ -164,6 +164,16 @@ export interface PlanRequest {
   reviewedBy?: string;
 }
 
+export interface CustomDepositMethod {
+  id: string;
+  name: string;
+  type: string;
+  account: string;
+  imageUrl?: string;
+  instructions?: string;
+  enabled: boolean;
+}
+
 export interface PaymentSettings {
   binanceUid?: string;
   binancePayId?: string;
@@ -174,12 +184,17 @@ export interface PaymentSettings {
   binancePaySecretKey?: string;
   binancePayMerchantId?: string;
   hasBinanceCredentials?: boolean;
+  binanceQrUrl?: string;
   bkashNumber: string;
   bkashEnabled?: boolean;
+  bkashQrUrl?: string;
   nagadNumber: string;
   nagadEnabled?: boolean;
+  nagadQrUrl?: string;
   rocketNumber: string;
   rocketEnabled?: boolean;
+  rocketQrUrl?: string;
+  customMethods?: CustomDepositMethod[];
   instructionsBn?: string;
   instructionsEn?: string;
 }

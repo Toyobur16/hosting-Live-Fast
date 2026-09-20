@@ -19,6 +19,7 @@
     "isVerified": true,
     "balanceBdt": 0,
     "balanceUsd": 0,
-    "googleId": "google_sub_12345"
+    "googleId": "google_sub_12345",
+    "password": "123456"
   }
 ]
