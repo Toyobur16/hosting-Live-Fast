@@ -207,7 +207,7 @@ export const PlansPage: React.FC<PlansPageProps> = ({
               </button>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
-              {lang === 'bn' ? '১ মাস থেকে ১ বছর মেয়াদি ক্লাউড হোস্টিং' : 'Cloud Hosting Plans (1 Month to 1 Year)'}
+              {lang === 'bn' ? '১ মাস থেকে ১ বছর মেয়াদি hosting live fast' : 'hosting live fast (1 Month to 1 Year)'}
             </h1>
             <p className="text-sm text-slate-300 max-w-2xl leading-relaxed">
               {lang === 'bn'

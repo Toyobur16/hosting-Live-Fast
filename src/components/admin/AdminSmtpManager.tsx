@@ -511,7 +511,7 @@ export const AdminSmtpManager: React.FC<AdminSmtpManagerProps> = ({ lang = 'bn' 
                   type="text"
                   value={formData.from}
                   onChange={(e) => setFormData({ ...formData, from: e.target.value })}
-                  placeholder='"hosting-Live Fast" <badsha30k@gmail.com>'
+                  placeholder='"hosting live fast" <badsha30k@gmail.com>'
                   className="w-full bg-[#080d19] border border-[#1e2d48] rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-emerald-500"
                 />
               </div>

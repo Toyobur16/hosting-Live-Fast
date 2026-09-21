@@ -4,7 +4,7 @@ import { SiteSettings } from '../../types';
 
 export function AdminSiteSettingsManager() {
   const [settings, setSettings] = useState<SiteSettings>({
-    siteName: 'FAKIR BD TOP UP',
+    siteName: 'hosting live fast',
     logoUrl: '/site-logo.png',
     taglineBn: '২৪/৭ ক্লাউড বট ও টপ আপ সার্ভিস',
     taglineEn: '24/7 Cloud Bot & Top Up Service'
@@ -186,7 +186,7 @@ export function AdminSiteSettingsManager() {
           </div>
           <div className="flex flex-col text-center sm:text-left min-w-0">
             <div className="flex items-center justify-center sm:justify-start gap-2">
-              <span className="text-xl font-black text-white">{settings.siteName || 'FAKIR BD TOP UP'}</span>
+              <span className="text-xl font-black text-white">{settings.siteName || 'hosting live fast'}</span>
               <span className="px-2 py-0.5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black uppercase">Official</span>
             </div>
             <span className="text-xs text-amber-400 font-bold mt-0.5">{settings.taglineBn || '২৪/৭ ক্লাউড বট ও টপ আপ সার্ভিস'}</span>
@@ -307,7 +307,7 @@ export function AdminSiteSettingsManager() {
             type="text"
             value={settings.siteName || ''}
             onChange={(e) => setSettings({ ...settings, siteName: e.target.value })}
-            placeholder="FAKIR BD TOP UP"
+            placeholder="hosting live fast"
             className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#070b14] border border-slate-200 dark:border-[#162035] text-xs font-medium text-slate-900 dark:text-white focus:outline-hidden focus:border-amber-500"
           />
         </div>

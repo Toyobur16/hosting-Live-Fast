@@ -8,6 +8,7 @@ import {
   Server,
   Terminal,
   Wallet,
+  Coins,
   Headphones,
   User,
   Shield,
@@ -79,6 +80,13 @@ export function SidebarDrawer({
       label: lang === 'bn' ? 'হোস্টিং প্ল্যানস' : 'Hosting Plans',
       icon: Crown,
       badge: 'VIP',
+      color: 'amber'
+    },
+    {
+      id: 'deposit-store',
+      label: lang === 'bn' ? 'ডিপোজিট স্টোর (লাইভ টপ-আপ)' : 'Deposit Store (Live Top-Up)',
+      icon: Coins,
+      badge: 'LIVE',
       color: 'amber'
     },
     {
@@ -168,7 +176,7 @@ export function SidebarDrawer({
                 </div>
                 <div className="flex flex-col min-w-0">
                   <span className="text-xs font-black text-slate-900 dark:text-white truncate">
-                    {siteSettings?.siteName || 'FAKIR BD TOP UP'}
+                    {siteSettings?.siteName || 'hosting live fast'}
                   </span>
                   <span className="text-[9px] font-bold text-amber-500 dark:text-amber-400 truncate">
                     {lang === 'bn'

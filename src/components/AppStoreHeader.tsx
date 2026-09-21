@@ -12,6 +12,7 @@ import {
   PlusCircle,
   Crown,
   ShoppingBag,
+  Coins,
   Headphones
 } from 'lucide-react';
 import { AuthUser, SiteSettings } from '../types';
@@ -104,7 +105,7 @@ export function AppStoreHeader({
             </div>
             <div className="flex flex-col min-w-0 overflow-hidden">
               <span className="text-xs xs:text-sm sm:text-base lg:text-lg font-black text-slate-900 dark:text-white tracking-tight truncate">
-                {siteSettings?.siteName || 'FAKIR BD TOP UP'}
+                {siteSettings?.siteName || 'hosting live fast'}
               </span>
               <span className="hidden sm:block text-[9px] sm:text-[10px] font-bold text-amber-500 dark:text-amber-400 tracking-wider uppercase truncate">
                 {lang === 'bn'
@@ -138,6 +139,18 @@ export function AppStoreHeader({
           >
             <Crown className="w-3.5 h-3.5" />
             {lang === 'bn' ? 'প্ল্যানস' : 'Plans'}
+          </button>
+
+          <button
+            onClick={() => onSelectTab('deposit-store')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              activeTab === 'deposit-store'
+                ? 'bg-amber-400 text-slate-950 shadow-xs font-black'
+                : 'text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300'
+            }`}
+          >
+            <Coins className="w-3.5 h-3.5" />
+            {lang === 'bn' ? 'ডিপোজিট স্টোর' : 'Deposit Store'}
           </button>
 
           <button

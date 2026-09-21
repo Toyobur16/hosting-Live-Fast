@@ -1912,6 +1912,18 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                   placeholder="849201948 (Binance Pay ID / UID)"
                   className="w-full bg-[#05080f] border border-[#1f2d48] rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
                 />
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                    Binance BEP-20 (BSC) USDT এড্রেস (ঐচ্ছিক):
+                  </label>
+                  <input
+                    type="text"
+                    value={paymentSettings.binanceBscAddress || ''}
+                    onChange={(e) => setPaymentSettings({ ...paymentSettings, binanceBscAddress: e.target.value })}
+                    placeholder="0xadf20566382613a481f39f62cd50b872314db1d3"
+                    className="w-full bg-[#05080f] border border-[#1f2d48] rounded-xl p-2 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
+                  />
+                </div>
                 <div className="flex items-center gap-2 pt-1">
                   {paymentSettings.binanceQrUrl ? (
                     <div className="flex items-center gap-2 flex-1 min-w-0 bg-[#0d1524] p-1.5 rounded-lg border border-[#1f2d48]">

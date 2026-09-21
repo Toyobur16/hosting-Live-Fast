@@ -178,6 +178,7 @@ export interface PaymentSettings {
   binanceUid?: string;
   binancePayId?: string;
   binanceId: string;
+  binanceBscAddress?: string;
   binanceEnabled?: boolean;
   binancePayApiEnabled?: boolean;
   binancePayApiKey?: string;

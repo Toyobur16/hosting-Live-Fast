@@ -168,7 +168,7 @@ export function AdminBannersManager() {
           onClick={() => {
             setIsNew(true);
             setEditingBanner({
-              title: 'hosting-Live Fast - 24/7 Hosting',
+              title: 'hosting live fast - 24/7 Hosting',
               titleBn: '২৪/৭ সুপারফাস্ট টেলিগ্রাম ও ওয়েবসাইট ক্লাউড হোস্টিং',
               subtitle: 'Deploy bots with automated crash recovery and full terminal logs',
               subtitleBn: 'অটো রিস্টার্ট ওয়াচডগ এবং রিয়েল-টাইম কনসোল লগস সহ সর্বোচ্চ আপটাইম',

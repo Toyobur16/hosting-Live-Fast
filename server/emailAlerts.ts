@@ -114,7 +114,17 @@ export function saveStoredNotifications(list: any[]) {
 export function getUserNotifications(userId: string, userEmail?: string): any[] {
   const all = getStoredNotifications();
   const lowerEmail = (userEmail || '').toLowerCase();
+  const effectiveUserId = userId || lowerEmail;
+
   return all.filter((n) => {
+    // Check if dismissed by this user
+    if (effectiveUserId && Array.isArray(n.dismissedBy) && n.dismissedBy.includes(effectiveUserId)) {
+      return false;
+    }
+    if (lowerEmail && Array.isArray(n.dismissedBy) && n.dismissedBy.includes(lowerEmail)) {
+      return false;
+    }
+
     if (n.userId === 'all' || n.target === 'all' || n.type === 'broadcast') return true;
     if (userId && n.userId === userId) return true;
     if (lowerEmail && n.userEmail && n.userEmail.toLowerCase() === lowerEmail) return true;
@@ -137,6 +147,89 @@ export function markNotificationAsRead(notifId: string, userId?: string): boolea
       if (target) target.read = true;
     }
     saveStoredNotifications(list);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function clearNotification(notifId: string, userId?: string, userEmail?: string): boolean {
+  try {
+    const list = getStoredNotifications();
+    const lowerEmail = (userEmail || '').toLowerCase();
+    const effectiveUserId = userId || lowerEmail;
+
+    let modified = false;
+    const remaining: any[] = [];
+
+    for (const n of list) {
+      if (n.id === notifId) {
+        modified = true;
+        // If it's a broadcast or shared notification, record it in dismissedBy for this user
+        if (n.userId === 'all' || n.target === 'all' || n.type === 'broadcast') {
+          n.dismissedBy = Array.isArray(n.dismissedBy) ? n.dismissedBy : [];
+          if (effectiveUserId && !n.dismissedBy.includes(effectiveUserId)) {
+            n.dismissedBy.push(effectiveUserId);
+          }
+          if (lowerEmail && !n.dismissedBy.includes(lowerEmail)) {
+            n.dismissedBy.push(lowerEmail);
+          }
+          remaining.push(n);
+        } else {
+          // Direct user notification: delete it completely
+          // do not add to remaining
+        }
+      } else {
+        remaining.push(n);
+      }
+    }
+
+    if (modified) {
+      saveStoredNotifications(remaining);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function clearAllUserNotifications(userId?: string, userEmail?: string): boolean {
+  try {
+    const list = getStoredNotifications();
+    const lowerEmail = (userEmail || '').toLowerCase();
+    const effectiveUserId = userId || lowerEmail;
+
+    const remaining: any[] = [];
+
+    for (const n of list) {
+      const isUserNotif =
+        (userId && n.userId === userId) ||
+        (lowerEmail && n.userEmail && n.userEmail.toLowerCase() === lowerEmail) ||
+        (lowerEmail && n.userId && n.userId.toLowerCase() === lowerEmail);
+
+      const isBroadcast = n.userId === 'all' || n.target === 'all' || n.type === 'broadcast';
+
+      if (isUserNotif) {
+        // Remove completely
+        continue;
+      }
+
+      if (isBroadcast) {
+        // Dismiss for this user
+        n.dismissedBy = Array.isArray(n.dismissedBy) ? n.dismissedBy : [];
+        if (effectiveUserId && !n.dismissedBy.includes(effectiveUserId)) {
+          n.dismissedBy.push(effectiveUserId);
+        }
+        if (lowerEmail && !n.dismissedBy.includes(lowerEmail)) {
+          n.dismissedBy.push(lowerEmail);
+        }
+        remaining.push(n);
+      } else {
+        remaining.push(n);
+      }
+    }
+
+    saveStoredNotifications(remaining);
     return true;
   } catch {
     return false;

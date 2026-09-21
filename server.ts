@@ -12,6 +12,8 @@ import {
   sendSubscriptionExpirationAlert,
   getUserNotifications,
   markNotificationAsRead,
+  clearNotification,
+  clearAllUserNotifications,
   addBroadcastNotification,
   getStoredNotifications,
   saveStoredNotifications,
@@ -74,8 +76,8 @@ if (!fs.existsSync(ANNOUNCEMENTS_FILE)) {
       [
         {
           id: 'ann_1',
-          titleBn: '⚡ hosting-Live Fast এ স্বাগতম!',
-          titleEn: '⚡ Welcome to hosting-Live Fast!',
+          titleBn: '⚡ hosting live fast এ স্বাগতম!',
+          titleEn: '⚡ Welcome to hosting live fast!',
           messageBn: '২৪/৭ ক্লাউড টেলিগ্রাম বট হোস্টিং, স্বয়ংক্রিয় রিস্টার্ট এবং ইনস্ট্যান্ট বাইনান্স ডিপোজিট সহ আপনার বট লাইভ রাখুন।',
           messageEn: '24/7 cloud Telegram bot hosting, auto-restart watchdog, and instant Binance deposits to keep your bot live.',
           date: new Date().toISOString(),
@@ -283,7 +285,7 @@ if (!fs.existsSync(PAYMENT_SETTINGS_FILE)) {
 }
 
 const DEFAULT_SITE_SETTINGS = {
-  siteName: 'FAKIR BD TOP UP',
+  siteName: 'hosting live fast',
   logoUrl: '/site-logo.png',
   taglineBn: '২৪/৭ ক্লাউড বট ও টপ আপ সার্ভিস',
   taglineEn: '24/7 Cloud Bot & Top Up Service'
@@ -705,12 +707,131 @@ function generateBinancePayHeaders(apiKey: string, secretKey: string, bodyObj: a
   };
 }
 
-async function creditUserFromBinanceOrder(order: any) {
+// Check if a transaction has already been credited
+function isTransactionAlreadyCredited(txId: string): boolean {
+  if (!txId) return false;
+  const clean = txId.trim().toLowerCase();
+
+  const requests = getPlanRequests();
+  const reqExists = requests.some((r) =>
+    (r.transactionId && r.transactionId.toLowerCase() === clean) ||
+    (r.senderIdentifier && r.senderIdentifier.toLowerCase() === clean) ||
+    (r.id && r.id.toLowerCase() === `dep_${clean}`)
+  );
+  if (reqExists) return true;
+
+  const orders = getBinanceOrders();
+  const ordExists = orders.some((o) =>
+    o.status === 'PAID' && (
+      (o.binanceTransactionId && o.binanceTransactionId.toLowerCase() === clean) ||
+      (o.merchantTradeNo && o.merchantTradeNo.toLowerCase() === clean) ||
+      (o.orderId && o.orderId.toLowerCase() === clean)
+    )
+  );
+  return ordExists;
+}
+
+// Query Binance Personal Account for incoming transfers (Pay / C2C / BSC On-Chain USDT)
+async function fetchBinancePersonalTransactions(creds: { apiKey: string; secretKey: string }) {
+  if (!creds.apiKey || !creds.secretKey) return [];
+
+  const results: Array<{
+    source: 'pay' | 'onchain';
+    transactionId: string;
+    orderId?: string;
+    amount: number;
+    currency: string;
+    timestamp: number;
+    payerName?: string;
+    payerId?: string;
+    network?: string;
+    address?: string;
+    note?: string;
+    raw?: any;
+  }> = [];
+
+  const now = Date.now();
+
+  // 1. Check Binance Pay / C2C incoming transactions
+  try {
+    const payQuery = `timestamp=${now}`;
+    const paySig = crypto.createHmac('sha256', creds.secretKey).update(payQuery).digest('hex');
+    const payRes = await fetch(`https://api.binance.com/sapi/v1/pay/transactions?${payQuery}&signature=${paySig}`, {
+      headers: { 'X-MBX-APIKEY': creds.apiKey }
+    });
+    if (payRes.ok) {
+      const payData: any = await payRes.json();
+      if (payData && payData.data && Array.isArray(payData.data)) {
+        for (const item of payData.data) {
+          const numAmt = parseFloat(item.amount);
+          // Positive amount means incoming transfer received by account
+          if (numAmt > 0) {
+            results.push({
+              source: 'pay',
+              transactionId: item.transactionId || item.orderId,
+              orderId: item.orderId,
+              amount: numAmt,
+              currency: item.currency || 'USDT',
+              timestamp: item.transactionTime || now,
+              payerName: item.payerInfo?.name || '',
+              payerId: item.payerInfo?.binanceId ? String(item.payerInfo.binanceId) : '',
+              note: item.note || '',
+              raw: item
+            });
+          }
+        }
+      }
+    }
+  } catch (err: any) {
+    console.warn('Error fetching Binance pay transactions:', err.message || err);
+  }
+
+  // 2. Check on-chain USDT BEP20/BSC deposits
+  try {
+    const depQuery = `coin=USDT&timestamp=${now}`;
+    const depSig = crypto.createHmac('sha256', creds.secretKey).update(depQuery).digest('hex');
+    const depRes = await fetch(`https://api.binance.com/sapi/v1/capital/deposit/hisrec?${depQuery}&signature=${depSig}`, {
+      headers: { 'X-MBX-APIKEY': creds.apiKey }
+    });
+    if (depRes.ok) {
+      const depData: any = await depRes.json();
+      if (Array.isArray(depData)) {
+        for (const item of depData) {
+          if (item.status === 1) { // 1 = Success
+            results.push({
+              source: 'onchain',
+              transactionId: item.txId || item.id,
+              orderId: item.id,
+              amount: parseFloat(item.amount),
+              currency: item.coin || 'USDT',
+              timestamp: item.completeTime || item.insertTime || now,
+              network: item.network,
+              address: item.address,
+              raw: item
+            });
+          }
+        }
+      }
+    }
+  } catch (err: any) {
+    console.warn('Error fetching Binance capital deposits:', err.message || err);
+  }
+
+  return results;
+}
+
+async function creditUserFromBinanceOrder(order: any, txDetails?: any) {
   if (order.status === 'PAID') {
     return { alreadyPaid: true, order, updatedUser: null };
   }
 
+  const finalAmount = txDetails?.amount ? Number(txDetails.amount) : Number(order.amount);
+  const finalTrxId = txDetails?.transactionId || order.binanceTransactionId || order.merchantTradeNo;
+  const payerInfo = txDetails?.payerId || txDetails?.payerName || order.prepayId || order.merchantTradeNo;
+
   order.status = 'PAID';
+  order.amount = finalAmount;
+  order.binanceTransactionId = finalTrxId;
   order.paidAt = new Date().toISOString();
 
   const orders = getBinanceOrders();
@@ -728,14 +849,14 @@ async function creditUserFromBinanceOrder(order: any) {
     (a) => a.id === order.userId || (a.email && order.userEmail && a.email.toLowerCase() === order.userEmail.toLowerCase())
   );
   if (targetUser) {
-    targetUser.balanceUsd = parseFloat(((targetUser.balanceUsd || 0) + Number(order.amount)).toFixed(2));
+    targetUser.balanceUsd = parseFloat(((targetUser.balanceUsd || 0) + finalAmount).toFixed(2));
     saveAccounts(accounts);
   }
 
   // 2. Add approved record to plan_requests.json
   const requests = getPlanRequests();
   const existingReq = requests.find(
-    (r) => r.transactionId === order.merchantTradeNo || r.id === `dep_${order.orderId}`
+    (r) => r.transactionId === finalTrxId || r.transactionId === order.merchantTradeNo || r.id === `dep_${order.orderId}`
   );
   if (!existingReq) {
     const newRequest = {
@@ -745,18 +866,18 @@ async function creditUserFromBinanceOrder(order: any) {
       userName: order.userName,
       userEmail: order.userEmail,
       planId: 'wallet_deposit',
-      planName: `ইনস্ট্যান্ট Binance Pay ডিপোজিট ($${Number(order.amount).toFixed(2)} USDT)`,
-      amount: Number(order.amount),
+      planName: `ইনস্ট্যান্ট Binance Pay ডিপোজিট ($${finalAmount.toFixed(2)} USDT)`,
+      amount: finalAmount,
       currency: 'USD',
       method: 'binance',
       senderNumber: 'Binance Pay App',
-      senderIdentifier: order.prepayId || order.merchantTradeNo,
-      transactionId: order.merchantTradeNo,
+      senderIdentifier: payerInfo,
+      transactionId: finalTrxId,
       note: 'অটোমেটিক ইনস্ট্যান্ট Binance Pay ডিপোজিট (Automated Instant Credit)',
       status: 'approved',
       createdAt: order.createdAt || new Date().toISOString(),
       reviewedAt: new Date().toISOString(),
-      reviewedBy: 'Binance Pay System'
+      reviewedBy: 'Binance Pay System (Auto Verified)'
     };
     requests.unshift(newRequest);
     savePlanRequests(requests);
@@ -776,14 +897,14 @@ async function creditUserFromBinanceOrder(order: any) {
       userId: order.userId,
       type: 'deposit_approved',
       title: '🎉 ইনস্ট্যান্ট ডিপোজিট সফল হয়েছে!',
-      message: `আপনার ওয়ালেটে $${Number(order.amount).toFixed(2)} USDT ইনস্ট্যান্ট যুক্ত হয়েছে। বর্তমান ব্যালেন্স: $${(targetUser?.balanceUsd || 0).toFixed(2)} USDT।`,
+      message: `আপনার ওয়ালেটে $${finalAmount.toFixed(2)} USDT ইনস্ট্যান্ট যুক্ত হয়েছে। বর্তমান ব্যালেন্স: $${(targetUser?.balanceUsd || 0).toFixed(2)} USDT।`,
       createdAt: new Date().toISOString(),
       read: false
     });
     saveStoredNotifications(notifications);
   } catch {}
 
-  return { alreadyPaid: false, order, updatedUser: targetUser };
+  return { alreadyPaid: false, order, updatedUser: targetUser, creditedAmount: finalAmount };
 }
 
 function getSiteSettings(): any {
@@ -1892,7 +2013,7 @@ app.post('/api/plans/purchase', (req, res) => {
 });
 
 // Wallet Deposit Submission Endpoint
-app.post('/api/wallet/deposit', (req, res) => {
+app.post('/api/wallet/deposit', async (req, res) => {
   const user = getAuthUser(req);
   if (!user) {
     return res.status(401).json({ error: 'ডিপোজিট করতে প্রথমে লগইন করুন (Please login to deposit)' });
@@ -1911,7 +2032,8 @@ app.post('/api/wallet/deposit', (req, res) => {
   }
 
   const requests = getPlanRequests();
-  const newRequest = {
+  const cleanTrx = transactionId.trim().toUpperCase();
+  const newRequest: any = {
     id: `dep_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
     type: 'deposit',
     userId: user.id,
@@ -1924,11 +2046,55 @@ app.post('/api/wallet/deposit', (req, res) => {
     method: method || 'binance',
     senderNumber: senderIdentifier.trim(),
     senderIdentifier: senderIdentifier.trim(),
-    transactionId: transactionId.trim().toUpperCase(),
+    transactionId: cleanTrx,
     note: (note || '').trim(),
     status: 'pending',
     createdAt: new Date().toISOString()
   };
+
+  // If method is binance or usdt, attempt instant live auto-verification against Binance API
+  if ((method === 'binance' || method === 'usdt') && cleanTrx) {
+    try {
+      const creds = getBinanceCredentials();
+      if (creds.isConfigured) {
+        const txs = await fetchBinancePersonalTransactions(creds);
+        const matched = txs.find((t) => {
+          if (isTransactionAlreadyCredited(t.transactionId)) return false;
+          const tId = (t.transactionId || '').toUpperCase();
+          const oId = (t.orderId || '').toUpperCase();
+          return tId === cleanTrx || oId === cleanTrx || tId.includes(cleanTrx) || cleanTrx.includes(tId);
+        });
+
+        if (matched) {
+          newRequest.status = 'approved';
+          newRequest.amount = matched.amount;
+          newRequest.reviewedAt = new Date().toISOString();
+          newRequest.reviewedBy = 'Binance Live Personal Auto-Verify';
+
+          // Credit user balance immediately
+          const accounts = getAccounts();
+          const acc = accounts.find((a) => a.id === user.id || a.email.toLowerCase() === user.email.toLowerCase());
+          if (acc) {
+            acc.balanceUsd = Math.round(((acc.balanceUsd || 0) + matched.amount) * 100) / 100;
+            saveAccounts(accounts);
+          }
+
+          requests.unshift(newRequest);
+          savePlanRequests(requests);
+
+          return res.json({
+            success: true,
+            autoApproved: true,
+            creditedAmount: matched.amount,
+            message: `অভিনন্দন! আপনার বাইন্যান্স ডিপোজিট (${matched.amount} USDT) লাইভ যাচাই সম্পন্ন হয়েছে এবং তাৎক্ষণিকভাবে ওয়ালেটে যোগ হয়েছে!`,
+            request: newRequest
+          });
+        }
+      }
+    } catch (binanceErr) {
+      console.warn('Binance Instant Deposit Auto-Verify check skipped:', binanceErr);
+    }
+  }
 
   requests.unshift(newRequest);
   savePlanRequests(requests);
@@ -2038,13 +2204,6 @@ app.post('/api/binance-pay/create-order', async (req, res) => {
     return res.status(400).json({ error: 'অটোমেটিক Binance Pay গেটওয়ে বর্তমানে সাময়িকভাবে বন্ধ রয়েছে।' });
   }
 
-  if (!creds.isConfigured) {
-    return res.status(400).json({
-      configured: false,
-      error: 'Binance Pay API কী এখনও কনফিগার করা হয়নি। এডমিন প্যানেল -> Payment Settings এ গিয়ে আপনার Binance Pay Merchant API Key ও Secret Key বসান।'
-    });
-  }
-
   const orderId = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
   const merchantTradeNo = `BP${Date.now()}${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -2052,123 +2211,90 @@ app.post('/api/binance-pay/create-order', async (req, res) => {
   const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'https' : 'http';
   const origin = `${protocol}://${hostHeader}`;
 
-  const binancePayload: any = {
-    env: {
-      terminalType: 'WEB'
-    },
+  const payId = paySettings.binancePayId || paySettings.binanceUid || '922593999';
+  const bscAddress = paySettings.binanceBscAddress || '0xadf20566382613a481f39f62cd50b872314db1d3';
+  const directDeepLink = `binance://payment/pay?merchantId=${payId}&amount=${numAmount.toFixed(2)}`;
+  const directWebUrl = `https://app.binance.com/qr/dop?id=${payId}`;
+
+  // Check if Merchant OpenAPI is possible, else use direct Pay ID mode with personal transaction auto-checking
+  let isApiSuccess = false;
+  let prepayId = `DIRECT_${orderId}`;
+  let checkoutUrl = directWebUrl;
+  let deeplink = directDeepLink;
+  let qrcodeLink = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(directWebUrl)}`;
+
+  if (creds.isConfigured && creds.merchantId) {
+    try {
+      const binancePayload: any = {
+        env: { terminalType: 'WEB' },
+        merchantTradeNo,
+        orderAmount: numAmount.toFixed(2),
+        currency: 'USDT',
+        goods: {
+          goodsType: '02',
+          goodsCategory: '6000',
+          referenceGoodsId: 'wallet_deposit',
+          goodsName: 'Wallet Deposit USDT',
+          goodsDetail: `Hosting wallet deposit: ${numAmount.toFixed(2)} USDT`
+        },
+        returnUrl: `${origin}/?tab=wallet&deposit=success&orderId=${orderId}`,
+        cancelUrl: `${origin}/?tab=wallet&deposit=cancel&orderId=${orderId}`,
+        webhookUrl: `${origin}/api/binance-pay/webhook`,
+        merchantId: creds.merchantId
+      };
+
+      const headers = generateBinancePayHeaders(creds.apiKey, creds.secretKey, binancePayload);
+      const bResponse = await fetch('https://bpay.binanceapi.com/binancepay/openapi/v3/order', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(binancePayload)
+      });
+      const bData: any = await bResponse.json();
+      if (bData.status === 'SUCCESS' && bData.data) {
+        isApiSuccess = true;
+        prepayId = bData.data.prepayId;
+        checkoutUrl = bData.data.checkoutUrl || directWebUrl;
+        deeplink = bData.data.deeplink || directDeepLink;
+        qrcodeLink = bData.data.qrcodeLink || qrcodeLink;
+      }
+    } catch {}
+  }
+
+  const newOrder = {
+    orderId,
     merchantTradeNo,
-    orderAmount: numAmount.toFixed(2),
+    prepayId,
+    checkoutUrl,
+    deeplink,
+    qrcodeLink,
+    qrContent: directWebUrl,
+    expireTime: Date.now() + 3600 * 1000,
+    amount: numAmount,
     currency: 'USDT',
-    goods: {
-      goodsType: '02',
-      goodsCategory: '6000',
-      referenceGoodsId: 'wallet_deposit',
-      goodsName: 'Wallet Deposit USDT',
-      goodsDetail: `Hosting wallet deposit: ${numAmount.toFixed(2)} USDT`
-    },
-    returnUrl: `${origin}/?tab=wallet&deposit=success&orderId=${orderId}`,
-    cancelUrl: `${origin}/?tab=wallet&deposit=cancel&orderId=${orderId}`,
-    webhookUrl: `${origin}/api/binance-pay/webhook`
+    userId: user.id,
+    userName: user.name,
+    userEmail: user.email,
+    binancePayId: payId,
+    binanceBscAddress: bscAddress,
+    status: 'PENDING',
+    isDirectMode: !isApiSuccess,
+    hasAutoCheck: Boolean(creds.apiKey && creds.secretKey),
+    createdAt: new Date().toISOString()
   };
 
-  if (creds.merchantId) {
-    binancePayload.merchantId = creds.merchantId;
-  }
+  const orders = getBinanceOrders();
+  orders.unshift(newOrder);
+  saveBinanceOrders(orders);
 
-  try {
-    const headers = generateBinancePayHeaders(creds.apiKey, creds.secretKey, binancePayload);
-    const bResponse = await fetch('https://bpay.binanceapi.com/binancepay/openapi/v3/order', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(binancePayload)
-    });
-
-    const bData: any = await bResponse.json();
-    const isApiSuccess = bData.status === 'SUCCESS' && bData.data;
-
-    if (!isApiSuccess) {
-      console.log('Binance Pay OpenAPI response:', { code: bData.code, msg: bData.errorMessage });
-    }
-
-    const payId = paySettings.binancePayId || '922593999';
-    const directDeepLink = `binance://payment/pay?merchantId=${payId}&amount=${numAmount.toFixed(2)}`;
-    const directWebUrl = `https://app.binance.com/qr/dop?id=${payId}`;
-
-    const newOrder = {
-      orderId,
-      merchantTradeNo,
-      prepayId: isApiSuccess ? bData.data.prepayId : `DIRECT_${orderId}`,
-      checkoutUrl: isApiSuccess ? bData.data.checkoutUrl : directWebUrl,
-      deeplink: isApiSuccess ? bData.data.deeplink : directDeepLink,
-      qrcodeLink: isApiSuccess
-        ? bData.data.qrcodeLink
-        : `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(directWebUrl)}`,
-      qrContent: isApiSuccess ? bData.data.qrContent : directWebUrl,
-      expireTime: isApiSuccess ? bData.data.expireTime : Date.now() + 3600 * 1000,
-      amount: numAmount,
-      currency: 'USDT',
-      userId: user.id,
-      userName: user.name,
-      userEmail: user.email,
-      binancePayId: payId,
-      status: 'PENDING',
-      isDirectMode: !isApiSuccess,
-      ipNotice: !isApiSuccess && bData.code === '400004' ? '34.96.48.13' : null,
-      createdAt: new Date().toISOString()
-    };
-
-    const orders = getBinanceOrders();
-    orders.unshift(newOrder);
-    saveBinanceOrders(orders);
-
-    res.json({
-      success: true,
-      order: newOrder,
-      isDirectMode: !isApiSuccess,
-      serverIp: '34.96.48.13'
-    });
-  } catch (err: any) {
-    console.warn('Binance Pay Connection Notice:', err.message || err);
-    // Fallback to direct Pay ID order so user is never blocked
-    const payId = paySettings.binancePayId || '922593999';
-    const directWebUrl = `https://app.binance.com/qr/dop?id=${payId}`;
-    const directDeepLink = `binance://payment/pay?merchantId=${payId}&amount=${numAmount.toFixed(2)}`;
-
-    const newOrder = {
-      orderId,
-      merchantTradeNo,
-      prepayId: `DIRECT_${orderId}`,
-      checkoutUrl: directWebUrl,
-      deeplink: directDeepLink,
-      qrcodeLink: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(directWebUrl)}`,
-      qrContent: directWebUrl,
-      expireTime: Date.now() + 3600 * 1000,
-      amount: numAmount,
-      currency: 'USDT',
-      userId: user.id,
-      userName: user.name,
-      userEmail: user.email,
-      binancePayId: payId,
-      status: 'PENDING',
-      isDirectMode: true,
-      serverIp: '34.96.48.13',
-      createdAt: new Date().toISOString()
-    };
-
-    const orders = getBinanceOrders();
-    orders.unshift(newOrder);
-    saveBinanceOrders(orders);
-
-    res.json({
-      success: true,
-      order: newOrder,
-      isDirectMode: true,
-      serverIp: '34.96.48.13'
-    });
-  }
+  res.json({
+    success: true,
+    order: newOrder,
+    isDirectMode: !isApiSuccess,
+    hasAutoCheck: Boolean(creds.apiKey && creds.secretKey)
+  });
 });
 
-// Check Binance Pay Order Status Endpoint
+// Check Binance Pay Order Status with Live Transaction Auto-Check
 app.get('/api/binance-pay/check-status/:orderId', async (req, res) => {
   const { orderId } = req.params;
   const orders = getBinanceOrders();
@@ -2190,31 +2316,55 @@ app.get('/api/binance-pay/check-status/:orderId', async (req, res) => {
   const creds = getBinanceCredentials();
   if (creds.isConfigured) {
     try {
-      const queryPayload = { merchantTradeNo: order.merchantTradeNo };
-      const headers = generateBinancePayHeaders(creds.apiKey, creds.secretKey, queryPayload);
-      const bResponse = await fetch('https://bpay.binanceapi.com/binancepay/openapi/v2/order/query', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(queryPayload)
+      // 1. Query Binance Personal Account for incoming transfers matching this order
+      const transactions = await fetchBinancePersonalTransactions(creds);
+      const orderCreatedEpoch = new Date(order.createdAt).getTime();
+
+      const matchedTx = transactions.find((tx) => {
+        if (isTransactionAlreadyCredited(tx.transactionId)) return false;
+
+        // Check if amount matches within 0.005
+        const amtMatch = Math.abs(tx.amount - Number(order.amount)) < 0.005;
+        // Check if timestamp is within order window (up to 3 minutes before order creation or anytime after)
+        const timeMatch = tx.timestamp >= (orderCreatedEpoch - 180000);
+
+        return amtMatch && timeMatch;
       });
 
-      const bData: any = await bResponse.json();
-      if (bData.status === 'SUCCESS' && bData.data) {
-        const bStatus = bData.data.status;
-        if (bStatus === 'PAID') {
-          const result = await creditUserFromBinanceOrder(order);
-          return res.json({
-            success: true,
-            status: 'PAID',
-            credited: true,
-            amount: order.amount,
-            newBalance: result.updatedUser?.balanceUsd
+      if (matchedTx) {
+        const result = await creditUserFromBinanceOrder(order, matchedTx);
+        return res.json({
+          success: true,
+          status: 'PAID',
+          credited: true,
+          amount: matchedTx.amount,
+          transactionId: matchedTx.transactionId,
+          newBalance: result.updatedUser?.balanceUsd
+        });
+      }
+
+      // 2. If merchant API was used, also query OpenAPI
+      if (creds.merchantId) {
+        try {
+          const queryPayload = { merchantTradeNo: order.merchantTradeNo };
+          const headers = generateBinancePayHeaders(creds.apiKey, creds.secretKey, queryPayload);
+          const bResponse = await fetch('https://bpay.binanceapi.com/binancepay/openapi/v2/order/query', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(queryPayload)
           });
-        } else if (bStatus === 'EXPIRED' || bStatus === 'CANCELED') {
-          order.status = bStatus;
-          saveBinanceOrders(orders);
-          return res.json({ success: true, status: bStatus });
-        }
+          const bData: any = await bResponse.json();
+          if (bData.status === 'SUCCESS' && bData.data?.status === 'PAID') {
+            const result = await creditUserFromBinanceOrder(order);
+            return res.json({
+              success: true,
+              status: 'PAID',
+              credited: true,
+              amount: order.amount,
+              newBalance: result.updatedUser?.balanceUsd
+            });
+          }
+        } catch {}
       }
     } catch (err: any) {
       console.warn('Binance Pay Query Status Notice:', err.message || err);
@@ -2227,8 +2377,148 @@ app.get('/api/binance-pay/check-status/:orderId', async (req, res) => {
   });
 });
 
-// Binance Pay Webhook Callback Endpoint
-app.post('/api/binance-pay/webhook', async (req, res) => {
+// Instant Verification Endpoint: Users submit Transaction ID / Order ID to auto-verify against Binance
+app.post('/api/binance-pay/verify-transaction', async (req, res) => {
+  const user = getAuthUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'ডিপোজিট ভেরিফাই করতে প্রথমে লগইন করুন।' });
+  }
+
+  const { transactionId, orderId, payerId } = req.body;
+  const searchTrx = (transactionId || '').trim();
+  const searchOrderId = (orderId || '').trim();
+  const searchPayer = (payerId || '').trim();
+
+  if (!searchTrx && !searchOrderId && !searchPayer) {
+    return res.status(400).json({ 
+      error: 'অনুগ্রহ করে সঠিক Transaction ID বা Order ID লিখুন। খালি আইডি ভেরিফাই করা যাবে না।' 
+    });
+  }
+
+  // Check if this transactionId or orderId was already credited
+  const checkKey = searchTrx || searchOrderId;
+  if (checkKey && isTransactionAlreadyCredited(checkKey)) {
+    return res.status(400).json({
+      error: `⚠️ এই ট্রানজেকশন/অর্ডার আইডিটি (${checkKey}) ইতিমধ্যে ভেরিফাই হয়ে ওয়ালেটে ক্রেডিট করা হয়েছে! একই আইডি দিয়ে বারবার ব্যালেন্স যোগ করা যাবে না।`
+    });
+  }
+
+  const creds = getBinanceCredentials();
+  if (!creds.isConfigured) {
+    return res.status(400).json({ 
+      error: 'বাইনান্স এপিআই কি (Binance API Key) বর্তমানে সেট করা নেই। এডমিন প্যানেল থেকে এপিআই কি কনফিগার করা আবশ্যক।' 
+    });
+  }
+
+  try {
+    const transactions = await fetchBinancePersonalTransactions(creds);
+
+    if (!transactions || transactions.length === 0) {
+      return res.status(404).json({
+        error: `❌ ভুল ট্রানজেকশন বা অর্ডার আইডি! বাইনান্স একাউন্টের সাম্প্রতিক লেনদেন তালিকায় "${checkKey}" সম্পর্কিত কোনো ডিপোজিট বা ট্রান্সফার রেকর্ড পাওয়া যায়নি। অনুগ্রহ করে আপনার বাইন্যান্স অ্যাপের Pay History বা Transaction History থেকে সঠিক Transaction ID / Order ID দেখে দিন।`
+      });
+    }
+
+    // Check if user submitted an ID that exists but was already used
+    const anyMatchingRaw = transactions.find((tx) => {
+      const s = checkKey.toLowerCase();
+      const txId = (tx.transactionId || '').toLowerCase();
+      const ordId = (tx.orderId || '').toLowerCase();
+      return txId === s || ordId === s || txId.includes(s) || (s.length >= 8 && s.includes(txId));
+    });
+
+    if (anyMatchingRaw && isTransactionAlreadyCredited(anyMatchingRaw.transactionId)) {
+      return res.status(400).json({
+        error: `⚠️ ট্রানজেকশন আইডি (${anyMatchingRaw.transactionId}) পাওয়া গেছে, কিন্তু এটি ইতিপূর্বে ব্যবহার করে ব্যালেন্স নিয়ে নেওয়া হয়েছে! নতুন লেনদেনের আইডি দিন।`
+      });
+    }
+
+    // Find matching incoming transaction that is not yet credited
+    const matchedTx = transactions.find((tx) => {
+      if (isTransactionAlreadyCredited(tx.transactionId)) return false;
+
+      if (checkKey) {
+        const s = checkKey.toLowerCase();
+        const txId = (tx.transactionId || '').toLowerCase();
+        const ordId = (tx.orderId || '').toLowerCase();
+
+        if (txId === s || ordId === s) return true;
+        if (txId.includes(s) || (s.length >= 8 && s.includes(txId))) return true;
+      }
+
+      if (searchPayer && tx.payerId && tx.payerId === searchPayer) {
+        return true;
+      }
+
+      return false;
+    });
+
+    if (!matchedTx) {
+      return res.status(404).json({
+        error: `❌ আইডিটি ভুল: "${checkKey}" নামে বাইনান্স একাউন্টে কোনো প্রাপ্ত ডিপোজিট পাওয়া যায়নি!\n\nসম্ভাব্য কারণ:\n১. ট্রানজেকশন আইডি বা অর্ডার আইডি ভুল টাইপ করেছেন।\n২. পেমেন্টটি এখনো কনফার্ম হয়নি (১-২ মিনিট অপেক্ষা করে আবার চেষ্টা করুন)।\n৩. টাকাটি অন্য কোনো মেথডে অথবা ভিন্ন বাইনান্স একাউন্টে পাঠানো হয়েছে।`
+      });
+    }
+
+    // Found! Now credit user
+    const orders = getBinanceOrders();
+    let order = searchOrderId ? orders.find((o) => o.orderId === searchOrderId || o.merchantTradeNo === searchOrderId) : null;
+    if (!order) {
+      order = {
+        orderId: `ord_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        merchantTradeNo: `BP${Date.now()}${Math.floor(1000 + Math.random() * 9000)}`,
+        prepayId: matchedTx.transactionId,
+        amount: matchedTx.amount,
+        currency: matchedTx.currency,
+        userId: user.id,
+        userName: user.name,
+        userEmail: user.email,
+        binancePayId: getPaymentSettings().binancePayId || '922593999',
+        status: 'PENDING',
+        createdAt: new Date().toISOString()
+      };
+      orders.unshift(order);
+      saveBinanceOrders(orders);
+    }
+
+    const result = await creditUserFromBinanceOrder(order, matchedTx);
+    return res.json({
+      success: true,
+      credited: true,
+      amount: matchedTx.amount,
+      currency: matchedTx.currency,
+      transactionId: matchedTx.transactionId,
+      newBalance: result.updatedUser?.balanceUsd,
+      message: `🎉 অভিনন্দন! $${matchedTx.amount} ${matchedTx.currency} সফলভাবে আপনার ওয়ালেট ব্যালেন্সে অটোমেটিক যোগ হয়েছে!`
+    });
+  } catch (err: any) {
+    return res.status(500).json({ 
+      error: `ভেরিফিকেশন চলাকালীন ত্রুটি হয়েছে: ${err.message || 'বাইনান্স এপিআই রেসপন্স করেনি। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।'}` 
+    });
+  }
+});
+
+// View Recent Binance Transactions (with credited status)
+app.get('/api/binance-pay/recent-transactions', async (req, res) => {
+  const user = getAuthUser(req);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+
+  const creds = getBinanceCredentials();
+  if (!creds.isConfigured) return res.json({ success: true, transactions: [] });
+
+  try {
+    const transactions = await fetchBinancePersonalTransactions(creds);
+    const mapped = transactions.map((t) => ({
+      ...t,
+      isCredited: isTransactionAlreadyCredited(t.transactionId)
+    }));
+    res.json({ success: true, transactions: mapped });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Binance Pay Webhook Callback Handler
+async function handleBinancePayWebhook(req: any, res: any) {
   try {
     const body = req.body || {};
     let eventData = body.data;
@@ -2269,9 +2559,13 @@ app.post('/api/binance-pay/webhook', async (req, res) => {
     console.warn('Binance Webhook notice:', err.message || err);
     res.json({ returnCode: 'SUCCESS', returnMessage: null });
   }
-});
+}
 
-// Admin Test Binance Connection
+// Binance Pay Webhook Callback Endpoint (supported at both paths requested by user)
+app.post('/api/binance-pay/webhook', handleBinancePayWebhook);
+app.post('/api/deposit/webhook', handleBinancePayWebhook);
+
+// Admin Test Binance Connection: checks Personal Account Pay API & Spot API
 app.post('/api/admin/binance-pay/test-connection', async (req, res) => {
   const admin = getAuthUser(req);
   if (!isUserAdmin(admin)) {
@@ -2288,39 +2582,58 @@ app.post('/api/admin/binance-pay/test-connection', async (req, res) => {
   }
 
   try {
-    const queryPayload = { merchantTradeNo: 'PING_' + Date.now() };
-    const headers = generateBinancePayHeaders(testApiKey, testSecretKey, queryPayload);
-    const bResponse = await fetch('https://bpay.binanceapi.com/binancepay/openapi/v2/order/query', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(queryPayload)
+    const timestamp = Date.now();
+    const query = `timestamp=${timestamp}`;
+    const signature = crypto.createHmac('sha256', testSecretKey).update(query).digest('hex');
+
+    // Test Personal Account Pay Transactions endpoint
+    const bResponse = await fetch(`https://api.binance.com/sapi/v1/pay/transactions?${query}&signature=${signature}`, {
+      headers: { 'X-MBX-APIKEY': testApiKey }
     });
 
     const bData: any = await bResponse.json();
-    if (
-      bData.code === '400001' ||
-      bData.code === '400002' ||
-      bData.errorMessage?.toLowerCase().includes('signature') ||
-      bData.errorMessage?.toLowerCase().includes('certificate')
-    ) {
+
+    if (bResponse.ok && bData.success !== false && (bData.code === undefined || bData.code === '000000')) {
+      const txCount = bData.data?.length || 0;
+      return res.json({
+        success: true,
+        isPersonalAccount: true,
+        txCount,
+        message: `🎉 Binance Personal Account API সফলভাবে কানেক্ট হয়েছে! লাইভ ডিপোজিট ও অটো-ব্যালেন্স যোগ সক্রিয় (UID: 922593999, মোট হিস্টোরি: ${txCount} টি)।`
+      });
+    }
+
+    // Also check standard account endpoint
+    const accResponse = await fetch(`https://api.binance.com/api/v3/account?${query}&signature=${signature}`, {
+      headers: { 'X-MBX-APIKEY': testApiKey }
+    });
+    const accData: any = await accResponse.json();
+
+    if (accResponse.ok && accData.canTrade !== undefined) {
+      return res.json({
+        success: true,
+        message: `🎉 Binance API ও Secret Key সফলভাবে ভেরিফাই হয়েছে! (Account Type: ${accData.accountType || 'SPOT'})`
+      });
+    }
+
+    // If IP restricted or invalid signature
+    if (bData.code === -1022 || bData.msg?.includes('Signature')) {
       return res.status(400).json({
         success: false,
-        error: 'Binance Pay প্রমাণীকরণ ব্যর্থ হয়েছে: ' + (bData.errorMessage || 'Invalid API Credentials')
+        error: 'Secret Key অথবা Signature অবৈধ। অনুগ্রহ করে সঠিক Secret Key প্রদান করুন।'
       });
     }
 
-    if (bData.code === '400004' || bData.errorMessage?.toLowerCase().includes('ip') || bData.errorMessage?.toLowerCase().includes('permission')) {
-      return res.status(200).json({
+    if (bData.code === -2015 || bData.msg?.includes('API-key')) {
+      return res.status(400).json({
         success: false,
-        isIpRestricted: true,
-        serverIp: '34.96.48.13',
-        error: '⚠️ Binance API Key টিতে IP Restriction রয়েছে (Server IP: 34.96.48.13)। Binance API Management এ গিয়ে IP Whitelist-এ এই IP টি যোগ করুন অথবা IP Access Restriction: "Unrestricted" নির্বাচন করুন। তবে অ্যাপের ডাইরেক্ট Binance Pay ফিচার চালু থাকবে।'
+        error: 'API Key অবৈধ অথবা পারমিশন নেই (IP Restriction বা Invalid API Key)।'
       });
     }
 
-    res.json({
-      success: true,
-      message: '🎉 Binance Pay API সংযোগ সফল হয়েছে! API Key এবং Secret Key সঠিক।'
+    return res.status(400).json({
+      success: false,
+      error: `Binance Response (${bResponse.status}): ${bData.msg || bData.errorMessage || JSON.stringify(bData)}`
     });
   } catch (err: any) {
     res.status(500).json({
@@ -2418,6 +2731,28 @@ app.post('/api/notifications/mark-read', (req, res) => {
   const { id } = req.body;
   markNotificationAsRead(id || 'all', user?.id);
   res.json({ success: true, message: 'Notifications marked as read' });
+});
+
+app.post('/api/notifications/clear', (req, res) => {
+  const user = getAuthUser(req);
+  const { id } = req.body;
+  if (!id || id === 'all') {
+    clearAllUserNotifications(user?.id, user?.email);
+  } else {
+    clearNotification(id, user?.id, user?.email);
+  }
+  res.json({ success: true, message: 'Notification(s) cleared successfully' });
+});
+
+app.delete('/api/notifications/:id', (req, res) => {
+  const user = getAuthUser(req);
+  const { id } = req.params;
+  if (id === 'all') {
+    clearAllUserNotifications(user?.id, user?.email);
+  } else {
+    clearNotification(id, user?.id, user?.email);
+  }
+  res.json({ success: true, message: 'Notification cleared' });
 });
 
 // Platform Announcements & Notices (Home ticker and banners)

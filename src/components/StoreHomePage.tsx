@@ -4,6 +4,7 @@ import {
   PlusCircle,
   Crown,
   Wallet,
+  Coins,
   Headphones,
   ChevronLeft,
   ChevronRight,
@@ -34,6 +35,7 @@ interface AnnouncementItem {
 interface StoreHomePageProps {
   user: AuthUser | null;
   onNavigateToWallet: () => void;
+  onNavigateToDepositStore?: () => void;
   onNavigateToPlans: () => void;
   onNavigateToBots: () => void;
   onDeployNewBot: () => void;
@@ -49,6 +51,7 @@ interface StoreHomePageProps {
 export function StoreHomePage({
   user,
   onNavigateToWallet,
+  onNavigateToDepositStore,
   onNavigateToPlans,
   onNavigateToBots,
   onDeployNewBot,
@@ -127,7 +130,7 @@ export function StoreHomePage({
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight">
-                {siteSettings?.siteName || 'FAKIR BD TOP UP'}
+                {siteSettings?.siteName || 'hosting live fast'}
               </h1>
               <span className="px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-amber-600 text-slate-950 text-[10px] sm:text-xs font-black uppercase shadow-xs">
                 Official
@@ -354,6 +357,44 @@ export function StoreHomePage({
         </div>
       </div>
 
+      {/* 3.5. Live Deposit Store Feature Banner */}
+      <div className="rounded-3xl border border-amber-500/30 bg-gradient-to-r from-[#11192e] via-[#0d1424] to-[#0a0f1d] p-5 sm:p-6 shadow-xl relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-80 h-full bg-gradient-to-l from-amber-500/10 to-transparent pointer-events-none" />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/40 shrink-0 shadow-lg shadow-amber-500/10">
+              <Coins className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base sm:text-lg font-black text-white">
+                  {lang === 'bn' ? '⚡ ডিপোজিট স্টোর (Deposit Store)' : '⚡ Deposit Store (Live Top-Up)'}
+                </h3>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-black border border-emerald-500/30">
+                  {lang === 'bn' ? 'লাইভ ডিপোজিট' : 'LIVE'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                {lang === 'bn'
+                  ? 'বাইনান্স (Binance Pay / UID) দিয়ে ইনস্ট্যান্ট ব্যালেন্স যোগ করুন অথবা বিকাশ, নগদ, রকেটে সহজে সেন্ড মানি করুন।'
+                  : 'Instant live deposit via Binance Pay / UID or bKash, Nagad, Rocket and custom methods.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 w-full sm:w-auto shrink-0">
+            <button
+              type="button"
+              onClick={onNavigateToDepositStore || onNavigateToWallet}
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer transition hover:scale-102"
+            >
+              <span>{lang === 'bn' ? 'স্টোরে প্রবেশ করুন' : 'Open Deposit Store'}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* 4. Quick Actions Bento Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Plans */}
@@ -444,7 +485,7 @@ export function StoreHomePage({
       <div className="rounded-3xl border border-slate-200 dark:border-[#1e2d48] bg-white dark:bg-[#0d1527] p-6 shadow-xl transition-colors space-y-4">
         <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
           <Zap className="w-5 h-5 text-[#00d293]" />
-          <span>{lang === 'bn' ? 'কেন hosting-Live Fast বেছে নেবেন?' : 'Why Choose hosting-Live Fast?'}</span>
+          <span>{lang === 'bn' ? 'কেন hosting live fast বেছে নেবেন?' : 'Why Choose hosting live fast?'}</span>
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">

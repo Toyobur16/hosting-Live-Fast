@@ -6,6 +6,7 @@ import { BottomNavBar } from './components/BottomNavBar';
 import { StoreHomePage } from './components/StoreHomePage';
 import { MarketplacePage } from './components/MarketplacePage';
 import { StoreWalletPage } from './components/StoreWalletPage';
+import { DepositStorePage } from './components/DepositStorePage';
 import { WishlistPage } from './components/WishlistPage';
 import { SupportCenterPage } from './components/SupportCenterPage';
 import { ProfilePage } from './components/ProfilePage';
@@ -23,7 +24,7 @@ import { HostedBot, LogEntry, AuthUser, SiteSettings } from './types';
 import { playBotStoppedAlert } from './utils/audioAlert';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'home' | 'market' | 'wallet' | 'wishlist' | 'support' | 'profile' | 'plans' | 'bots' | 'terminal'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'market' | 'wallet' | 'wishlist' | 'support' | 'profile' | 'plans' | 'bots' | 'terminal' | 'deposit-store'>('home');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [bots, setBots] = useState<HostedBot[]>([]);
   const [selectedBotId, setSelectedBotId] = useState<string | null>(null);
@@ -32,7 +33,7 @@ export default function App() {
   const [wishlistIds, setWishlistIds] = useState<string[]>([]);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({
-    siteName: 'FAKIR BD TOP UP',
+    siteName: 'hosting live fast',
     logoUrl: '/site-logo.png',
     taglineBn: '২৪/৭ ক্লাউড বট ও টপ আপ সার্ভিস',
     taglineEn: '24/7 Cloud Bot & Top Up Service'
@@ -620,6 +621,7 @@ export default function App() {
           <StoreHomePage
             user={currentUser}
             onNavigateToWallet={() => setActiveTab('wallet')}
+            onNavigateToDepositStore={() => setActiveTab('deposit-store')}
             onNavigateToPlans={() => setActiveTab('plans')}
             onNavigateToBots={() => setActiveTab('bots')}
             onDeployNewBot={handleDeployNewBot}
@@ -651,10 +653,25 @@ export default function App() {
             user={currentUser}
             onOpenAuthModal={() => setShowAuthModal(true)}
             onNavigateToPlans={() => setActiveTab('plans')}
+            onNavigateToDepositStore={() => setActiveTab('deposit-store')}
             onUserUpdated={(u) => {
               setCurrentUser(u);
               checkAuth();
             }}
+          />
+        )}
+
+        {/* 3.5. Dedicated Deposit Store Page */}
+        {activeTab === 'deposit-store' && (
+          <DepositStorePage
+            user={currentUser}
+            onOpenAuthModal={() => setShowAuthModal(true)}
+            onNavigateToPlans={() => setActiveTab('plans')}
+            onUserUpdated={(u) => {
+              setCurrentUser(u);
+              checkAuth();
+            }}
+            lang={lang}
           />
         )}
 

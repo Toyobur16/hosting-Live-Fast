@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, CheckCheck, X, AlertCircle, Sparkles, CheckCircle2, Clock, RefreshCw } from 'lucide-react';
+import { Bell, CheckCheck, X, AlertCircle, Sparkles, CheckCircle2, Clock, RefreshCw, Trash2 } from 'lucide-react';
 import { AuthUser } from '../types';
 
 interface NotificationItem {
@@ -23,6 +23,7 @@ interface NotificationsModalProps {
 export function NotificationsModal({ isOpen, onClose, currentUser, lang }: NotificationsModalProps) {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const fetchNotifications = async () => {
     setLoading(true);
@@ -81,6 +82,50 @@ export function NotificationsModal({ isOpen, onClose, currentUser, lang }: Notif
     } catch {}
   };
 
+  const handleClearSingle = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    try {
+      // Optimistically remove from state immediately
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+
+      const token = localStorage.getItem('bot_auth_token');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      await fetch('/api/notifications/clear', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ id })
+      });
+    } catch {
+      // Re-sync on failure
+      fetchNotifications();
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (notifications.length === 0) return;
+    try {
+      setClearing(true);
+      // Optimistically clear all notifications from state immediately
+      setNotifications([]);
+
+      const token = localStorage.getItem('bot_auth_token');
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      await fetch('/api/notifications/clear', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ id: 'all' })
+      });
+    } catch {
+      fetchNotifications();
+    } finally {
+      setClearing(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -128,19 +173,38 @@ export function NotificationsModal({ isOpen, onClose, currentUser, lang }: Notif
           </div>
         </div>
 
-        {/* Actions bar if unread exists */}
-        {unreadCount > 0 && (
-          <div className="flex items-center justify-between px-1">
+        {/* Actions bar: Unread status, Mark all as read, and Clear All */}
+        {notifications.length > 0 && (
+          <div className="flex items-center justify-between px-1 py-1 bg-slate-50 dark:bg-[#111c33] rounded-lg px-2 border border-slate-200 dark:border-[#1e2d48]">
             <span className="text-xs text-slate-500 dark:text-slate-400">
-              {lang === 'bn' ? `${unreadCount} টি অপঠিত নোটিফিকেশন` : `${unreadCount} unread notifications`}
+              {unreadCount > 0
+                ? lang === 'bn'
+                  ? `${unreadCount} টি অপঠিত`
+                  : `${unreadCount} unread`
+                : lang === 'bn'
+                ? `মোট ${notifications.length} টি নোটিফিকেশন`
+                : `${notifications.length} total`}
             </span>
-            <button
-              onClick={handleMarkAllRead}
-              className="text-xs font-semibold text-[#00d293] hover:underline flex items-center gap-1 cursor-pointer"
-            >
-              <CheckCheck className="w-3.5 h-3.5" />
-              {lang === 'bn' ? 'সব পঠিত হিসেবে চিহ্নিত করুন' : 'Mark all as read'}
-            </button>
+            <div className="flex items-center gap-3">
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllRead}
+                  className="text-xs font-semibold text-[#00d293] hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <CheckCheck className="w-3.5 h-3.5" />
+                  {lang === 'bn' ? 'সব পঠিত করুন' : 'Mark read'}
+                </button>
+              )}
+              <button
+                onClick={handleClearAll}
+                disabled={clearing}
+                className="text-xs font-semibold text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                title={lang === 'bn' ? 'সব নোটিফিকেশন ক্লিয়ার করুন' : 'Clear all notifications'}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {lang === 'bn' ? 'সব মুছুন (Clear All)' : 'Clear all'}
+              </button>
+            </div>
           </div>
         )}
 
@@ -168,14 +232,14 @@ export function NotificationsModal({ isOpen, onClose, currentUser, lang }: Notif
                 <div
                   key={item.id}
                   onClick={() => !item.read && handleMarkSingleRead(item.id)}
-                  className={`p-3.5 rounded-xl border transition-all text-left ${
+                  className={`p-3.5 rounded-xl border transition-all text-left relative group ${
                     !item.read
                       ? 'bg-emerald-50/70 dark:bg-[#00d293]/5 border-[#00d293]/30 shadow-xs'
-                      : 'bg-slate-50 dark:bg-[#111c33] border-slate-200 dark:border-[#1e2d48] opacity-80'
+                      : 'bg-slate-50 dark:bg-[#111c33] border-slate-200 dark:border-[#1e2d48] opacity-85'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-start gap-2.5">
+                    <div className="flex items-start gap-2.5 flex-1 pr-2">
                       <div className="mt-0.5 shrink-0">
                         {isApproved ? (
                           <div className="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
@@ -195,7 +259,7 @@ export function NotificationsModal({ isOpen, onClose, currentUser, lang }: Notif
                           </div>
                         )}
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-1 flex-1">
                         <div className="flex items-center gap-2">
                           <h4 className="text-xs font-bold text-slate-900 dark:text-white leading-snug">
                             {item.title}
@@ -216,6 +280,15 @@ export function NotificationsModal({ isOpen, onClose, currentUser, lang }: Notif
                         </span>
                       </div>
                     </div>
+
+                    {/* Delete single notification button */}
+                    <button
+                      onClick={(e) => handleClearSingle(e, item.id)}
+                      title={lang === 'bn' ? 'মুছে ফেলুন (Clear)' : 'Delete notification'}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition shrink-0 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               );

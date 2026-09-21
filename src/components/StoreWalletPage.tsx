@@ -35,6 +35,7 @@ interface StoreWalletPageProps {
   user: AuthUser | null;
   onOpenAuthModal: () => void;
   onNavigateToPlans: () => void;
+  onNavigateToDepositStore?: () => void;
   onUserUpdated?: (updatedUser: AuthUser) => void;
 }
 
@@ -42,6 +43,7 @@ export function StoreWalletPage({
   user,
   onOpenAuthModal,
   onNavigateToPlans,
+  onNavigateToDepositStore,
   onUserUpdated
 }: StoreWalletPageProps) {
   const [view, setView] = useState<'overview' | 'deposit' | 'history'>('overview');
@@ -641,6 +643,17 @@ export function StoreWalletPage({
               </span>
             )}
           </button>
+
+          {onNavigateToDepositStore && (
+            <button
+              onClick={onNavigateToDepositStore}
+              className="px-2.5 sm:px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center bg-amber-400/15 hover:bg-amber-400/25 text-amber-300 border border-amber-400/30"
+              title="ডিপোজিট স্টোর পেজ খুলুন"
+            >
+              <Coins className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="truncate">ডিপোজিট স্টোর</span>
+            </button>
+          )}
         </div>
 
         {/* Auto-Sync Real-time Indicator & Manual Refresh Button */}
