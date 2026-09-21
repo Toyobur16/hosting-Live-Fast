@@ -710,6 +710,8 @@ export default function App() {
             onLogout={handleLogout}
             isAdmin={isAdmin}
             onOpenAdminModal={() => setShowAdminModal(true)}
+            onUserUpdate={(u) => setCurrentUser(u)}
+            lang={lang}
           />
         )}
 
@@ -859,6 +861,7 @@ export default function App() {
           onSelectBot={(id) => setSelectedBotId(id)}
           onBotsUpdated={() => fetchBots()}
           onTestToken={() => setShowTokenCheckModal(true)}
+          onUserUpdated={(u) => setCurrentUser(u)}
           initialTab={settingsInitialTab}
           soundAlertEnabled={soundAlertEnabled}
           onToggleSoundAlert={handleToggleSoundAlert}

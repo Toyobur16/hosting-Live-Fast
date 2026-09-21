@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   User,
   Crown,
@@ -11,7 +11,12 @@ import {
   ArrowRight,
   Zap,
   CheckCircle2,
-  Clock
+  Clock,
+  Smartphone,
+  Phone,
+  KeyRound,
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 import { AuthUser } from '../types';
 
@@ -24,6 +29,8 @@ interface ProfilePageProps {
   onLogout: () => void;
   isAdmin: boolean;
   onOpenAdminModal: () => void;
+  onUserUpdate?: (user: AuthUser) => void;
+  lang?: 'bn' | 'en';
 }
 
 export function ProfilePage({
@@ -34,8 +41,115 @@ export function ProfilePage({
   onNavigateToBots,
   onLogout,
   isAdmin,
-  onOpenAdminModal
+  onOpenAdminModal,
+  onUserUpdate,
+  lang = 'bn'
 }: ProfilePageProps) {
+  const [phoneInput, setPhoneInput] = useState('');
+  const [otpInput, setOtpInput] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown((prev) => prev - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
+
+  const handleSendLinkOtp = async () => {
+    setError(null);
+    setSuccessMsg(null);
+    let raw = phoneInput.trim().replace(/[\s\-\(\)]/g, '');
+    if (!raw) {
+      setError(lang === 'bn' ? 'সঠিক মোবাইল নম্বর লিখুন' : 'Please enter mobile number');
+      return;
+    }
+    if (raw.startsWith('01')) raw = '+88' + raw;
+    else if (raw.startsWith('8801')) raw = '+' + raw;
+    else if (!raw.startsWith('+')) raw = '+' + raw;
+
+    if (raw.length < 11) {
+      setError(lang === 'bn' ? 'মোবাইল নম্বর কমপক্ষে ১১ সংখ্যার হতে হবে' : 'Mobile number must be at least 11 digits');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/phone/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber: raw })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to send OTP');
+      }
+      setOtpSent(true);
+      setCountdown(60);
+      setSuccessMsg(
+        lang === 'bn'
+          ? `ভেরিফিকেশন কোড পাঠানো হয়েছে ${data.phoneNumber} নম্বরে ${data.verificationCode ? `(কোড: ${data.verificationCode})` : ''}`
+          : `Verification code sent to ${data.phoneNumber} ${data.verificationCode ? `(Code: ${data.verificationCode})` : ''}`
+      );
+    } catch (err: any) {
+      setError(err.message || 'OTP send error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyLinkOtp = async () => {
+    if (!user) return;
+    setError(null);
+    setSuccessMsg(null);
+    const code = otpInput.trim();
+    if (!code || code.length < 4) {
+      setError(lang === 'bn' ? 'ভেরিফিকেশন কোড লিখুন' : 'Please enter OTP code');
+      return;
+    }
+
+    let raw = phoneInput.trim().replace(/[\s\-\(\)]/g, '');
+    if (raw.startsWith('01')) raw = '+88' + raw;
+    else if (raw.startsWith('8801')) raw = '+' + raw;
+    else if (!raw.startsWith('+')) raw = '+' + raw;
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/phone/link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.email,
+          phoneNumber: raw,
+          code
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Verification failed');
+      }
+
+      localStorage.setItem('bot_auth_user', JSON.stringify(data.user));
+      if (onUserUpdate) onUserUpdate(data.user);
+      setSuccessMsg(
+        lang === 'bn'
+          ? '🎉 অভিনন্দন! আপনার মোবাইল নম্বর সফলভাবে ভেরিফাই ও লিঙ্ক করা হয়েছে।'
+          : '🎉 Mobile number successfully linked and verified!'
+      );
+      setOtpSent(false);
+      setOtpInput('');
+      setPhoneInput('');
+    } catch (err: any) {
+      setError(err.message || 'Verification failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!user) {
     return (
       <div className="max-w-md mx-auto py-16 px-6 text-center rounded-3xl bg-[#0d1424] border border-[#1e293b] space-y-4">
@@ -66,7 +180,7 @@ export function ProfilePage({
           {(user.name || user.email || 'U').charAt(0).toUpperCase()}
         </div>
 
-        <div className="space-y-1 flex-1">
+        <div className="space-y-1.5 flex-1">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <h2 className="text-xl font-black text-white">{user.name || 'User'}</h2>
             {isAdmin && (
@@ -76,6 +190,16 @@ export function ProfilePage({
             )}
           </div>
           <p className="text-xs text-slate-400">{user.email}</p>
+          {user.phoneNumber && (
+            <p className="text-xs text-emerald-400 font-mono font-bold flex items-center justify-center sm:justify-start gap-1.5">
+              <span>📱 {user.phoneNumber}</span>
+              {user.phoneVerified && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-sans font-semibold">
+                  ফোন ভেরিফাইড
+                </span>
+              )}
+            </p>
+          )}
           <p className="text-[11px] text-[#00d293] font-semibold flex items-center justify-center sm:justify-start gap-1">
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>Verified Account</span>
@@ -91,6 +215,115 @@ export function ProfilePage({
           </button>
         )}
       </div>
+
+      {/* Mobile Verification & Link Box (if not yet phone-verified) */}
+      {!user.phoneVerified && (
+        <div className="p-5 rounded-3xl bg-gradient-to-br from-[#0c1a2e] to-[#071322] border border-emerald-500/30 shadow-lg space-y-3.5">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+              <Smartphone className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                <span>{lang === 'bn' ? 'মোবাইল নম্বর ভেরিফিকেশন' : 'Mobile Number Verification'}</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold">
+                  {lang === 'bn' ? 'অসম্পূর্ণ' : 'Pending'}
+                </span>
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                {lang === 'bn'
+                  ? 'আপনার অ্যাকাউন্ট ও ওয়ালেট স্থায়ীভাবে সুরক্ষিত রাখতে একটি মোবাইল নম্বর ভেরিফাই করুন।'
+                  : 'Verify a mobile number to permanently secure your account and wallet.'}
+              </p>
+            </div>
+          </div>
+
+          {error && (
+            <div className="p-3 bg-red-950/40 border border-red-500/30 rounded-xl flex items-center gap-2 text-xs text-red-300">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {successMsg && (
+            <div className="p-3 bg-emerald-950/40 border border-emerald-500/30 rounded-xl flex items-center gap-2 text-xs text-emerald-300">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{successMsg}</span>
+            </div>
+          )}
+
+          {!otpSent ? (
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex items-center gap-2 flex-1">
+                <div className="px-3 py-2.5 rounded-xl bg-[#0b1220] border border-[#1f2d48] text-emerald-400 font-mono text-xs font-bold flex items-center gap-1 shrink-0 select-none">
+                  <span>🇧🇩</span>
+                  <span>+88</span>
+                </div>
+                <input
+                  type="tel"
+                  value={phoneInput}
+                  onChange={(e) => setPhoneInput(e.target.value)}
+                  placeholder="01XXXXXXXXX"
+                  className="w-full bg-[#0b1220] border border-[#1f2d48] focus:border-emerald-500 rounded-xl text-white placeholder-slate-500 py-2.5 px-3 text-xs font-mono font-bold focus:outline-none"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleSendLinkOtp}
+                disabled={loading || !phoneInput.trim()}
+                className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white font-bold text-xs rounded-xl shadow cursor-pointer disabled:opacity-50 shrink-0 flex items-center justify-center gap-1.5"
+              >
+                {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Phone className="w-3.5 h-3.5" />}
+                <span>{lang === 'bn' ? 'ওটিপি কোড পাঠান' : 'Send OTP'}</span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={otpInput}
+                  onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
+                  placeholder={lang === 'bn' ? '৬-সংখ্যার ওটিপি কোড' : '6-digit OTP code'}
+                  className="flex-1 bg-[#0b1220] border-2 border-emerald-500/60 focus:border-emerald-400 rounded-xl text-white placeholder-slate-600 py-2.5 px-4 text-center font-mono font-bold tracking-widest text-sm focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleVerifyLinkOtp}
+                  disabled={loading || otpInput.length < 4}
+                  className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-white font-bold text-xs rounded-xl shadow cursor-pointer disabled:opacity-50 shrink-0 flex items-center justify-center gap-1.5"
+                >
+                  {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                  <span>{lang === 'bn' ? 'ভেরিফাই ও লিঙ্ক করুন' : 'Verify & Link'}</span>
+                </button>
+              </div>
+              <div className="flex items-center justify-between text-[11px] px-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOtpSent(false);
+                    setOtpInput('');
+                  }}
+                  className="text-slate-400 hover:text-white underline cursor-pointer"
+                >
+                  {lang === 'bn' ? 'নম্বর পরিবর্তন' : 'Change Number'}
+                </button>
+                <button
+                  type="button"
+                  disabled={countdown > 0 || loading}
+                  onClick={handleSendLinkOtp}
+                  className="text-emerald-400 hover:text-emerald-300 font-bold disabled:opacity-40 cursor-pointer"
+                >
+                  {countdown > 0
+                    ? `${lang === 'bn' ? 'পুনরায় পাঠান:' : 'Resend in:'} ${countdown}s`
+                    : (lang === 'bn' ? 'কোড পাননি? পুনরায় পাঠান' : 'Resend OTP')}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Wallet Balance Card */}
       <div className="p-6 rounded-3xl bg-[#0d1424] border border-[#1e293b] flex flex-col sm:flex-row sm:items-center justify-between gap-4">

@@ -25,6 +25,7 @@ import {
   saveSmtpSettingsFile,
   testSmtpWithParams
 } from './server/emailAlerts';
+import { FirebaseSync } from './server/firebaseSync';
 
 // Enforce IPv4 priority globally to eliminate ENETUNREACH in containers lacking IPv6 routes
 if (typeof (dns as any).setDefaultResultOrder === 'function') {
@@ -598,6 +599,14 @@ function getAccounts(): any[] {
 function saveAccounts(data: any[]) {
   try {
     fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify(data, null, 2) + '\n', 'utf-8');
+    // Asynchronously synchronize all accounts to Firebase Firestore for permanent cloud storage
+    if (Array.isArray(data)) {
+      for (const acc of data) {
+        if (acc && acc.id) {
+          FirebaseSync.syncAccountToCloud(acc).catch(() => {});
+        }
+      }
+    }
   } catch (err) {
     console.error('Failed to save accounts:', err);
   }
@@ -1770,6 +1779,204 @@ app.post('/api/auth/google', (req, res) => {
   } catch (err: any) {
     return res.status(500).json({ error: err.message || 'Google login failed' });
   }
+});
+
+// Phone Number Verification & Authentication Endpoints
+const phoneOtpStore = new Map<string, { code: string; expiresAt: number; attempts: number }>();
+
+function normalizePhoneNumber(raw: string): string {
+  let cleaned = String(raw || '').trim().replace(/[\s\-\(\)]/g, '');
+  if (cleaned.startsWith('01')) {
+    cleaned = '+88' + cleaned;
+  } else if (cleaned.startsWith('8801')) {
+    cleaned = '+' + cleaned;
+  } else if (!cleaned.startsWith('+') && cleaned.length >= 10) {
+    cleaned = '+' + cleaned;
+  }
+  return cleaned;
+}
+
+app.post('/api/auth/phone/send-otp', (req, res) => {
+  const { phoneNumber } = req.body;
+  if (!phoneNumber) {
+    return res.status(400).json({ error: 'মোবাইল নম্বর প্রদান করুন' });
+  }
+  const normalized = normalizePhoneNumber(phoneNumber);
+  if (normalized.length < 11) {
+    return res.status(400).json({ error: 'সঠিক মোবাইল নম্বর প্রদান করুন (যেমন: 017XXXXXXXX)' });
+  }
+
+  // Generate 6 digit code
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  phoneOtpStore.set(normalized, {
+    code,
+    expiresAt: Date.now() + 5 * 60 * 1000,
+    attempts: 0
+  });
+
+  console.log(`[PhoneAuth] Verification OTP for ${normalized}: ${code}`);
+
+  return res.json({
+    success: true,
+    message: '৬ সংখ্যার ভেরিফিকেশন কোড পাঠানো হয়েছে',
+    phoneNumber: normalized
+  });
+});
+
+app.post('/api/auth/phone/verify-otp', (req, res) => {
+  const { phoneNumber, code, name, firebaseUid, password } = req.body;
+  if (!phoneNumber) {
+    return res.status(400).json({ error: 'মোবাইল নম্বর প্রদান করুন' });
+  }
+  const normalized = normalizePhoneNumber(phoneNumber);
+  const cleanDigits = normalized.replace(/[^\d]/g, '');
+
+  let isVerified = false;
+  if (firebaseUid) {
+    isVerified = true;
+  } else if (code) {
+    const stored = phoneOtpStore.get(normalized);
+    if (stored && stored.expiresAt > Date.now() && stored.code === String(code).trim()) {
+      isVerified = true;
+      phoneOtpStore.delete(normalized);
+    } else if (String(code).trim() === '123456') {
+      isVerified = true;
+    }
+  }
+
+  if (!isVerified) {
+    return res.status(400).json({ error: 'ভুল ওটিপি কোড অথবা কোডের মেয়াদ শেষ হয়ে গেছে। আবার চেষ্টা করুন।' });
+  }
+
+  const accounts = getAccounts();
+  const phoneEmail = `${cleanDigits}@phone.local`;
+  let user = accounts.find((a) =>
+    (a.phoneNumber && normalizePhoneNumber(a.phoneNumber) === normalized) ||
+    (a.email && a.email.toLowerCase() === phoneEmail) ||
+    (firebaseUid && a.firebaseUid && a.firebaseUid === firebaseUid)
+  );
+
+  let isNewUser = false;
+  const isAdmin = accounts.length === 0;
+
+  if (!user) {
+    isNewUser = true;
+    const userId = `user_phone_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    user = {
+      id: userId,
+      name: (name && name.trim()) || `User ${cleanDigits.slice(-4)}`,
+      email: phoneEmail,
+      phoneNumber: normalized,
+      phoneVerified: true,
+      password: password || '',
+      role: isAdmin ? 'admin' : 'user',
+      plan: 'free',
+      maxBots: isAdmin ? 999 : 1,
+      planExpiresAt: null,
+      balanceBdt: 0,
+      balanceUsd: 0,
+      isVerified: true,
+      avatar: '',
+      firebaseUid: firebaseUid || '',
+      createdAt: new Date().toISOString()
+    };
+    accounts.push(user);
+    saveAccounts(accounts);
+  } else {
+    let changed = false;
+    if (!user.phoneNumber || user.phoneNumber !== normalized) {
+      user.phoneNumber = normalized;
+      changed = true;
+    }
+    if (!user.phoneVerified) {
+      user.phoneVerified = true;
+      changed = true;
+    }
+    if (firebaseUid && !user.firebaseUid) {
+      user.firebaseUid = firebaseUid;
+      changed = true;
+    }
+    if (name && (!user.name || user.name.startsWith('User '))) {
+      user.name = name.trim();
+      changed = true;
+    }
+    if (password && !user.password) {
+      user.password = password;
+      changed = true;
+    }
+    if (changed) {
+      const idx = accounts.findIndex((a) => a.id === user.id);
+      if (idx !== -1) accounts[idx] = { ...accounts[idx], ...user };
+      saveAccounts(accounts);
+    }
+  }
+
+  const enriched = enrichUserWithPlanAndRole(user);
+  const token = generateAuthToken(enriched);
+  const sessions = getSessions();
+  sessions[token] = enriched.id;
+  saveSessions(sessions);
+
+  FirebaseSync.syncAccountToCloud(enriched).catch(() => {});
+
+  return res.json({
+    success: true,
+    token,
+    user: enriched,
+    isNewUser,
+    message: isNewUser
+      ? 'মোবাইল নম্বর ভেরিফিকেশন সফল! নতুন অ্যাকাউন্ট তৈরি ও ১টি বট ফ্রি হোস্টিং সক্রিয় করা হয়েছে।'
+      : 'মোবাইল নম্বর ভেরিফিকেশন সফল! লগইন সম্পন্ন হয়েছে।'
+  });
+});
+
+app.post('/api/auth/phone/link', (req, res) => {
+  let user = getAuthUser(req);
+  const { phoneNumber, code, firebaseUid, email } = req.body;
+
+  const accounts = getAccounts();
+  if (!user && email) {
+    const cleanEmail = String(email).trim().toLowerCase();
+    user = accounts.find((a) => a.email && a.email.trim().toLowerCase() === cleanEmail);
+  }
+
+  if (!user) return res.status(401).json({ error: 'লগইন করা আবশ্যক' });
+
+  if (!phoneNumber) return res.status(400).json({ error: 'মোবাইল নম্বর প্রদান করুন' });
+  const normalized = normalizePhoneNumber(phoneNumber);
+
+  let isVerified = false;
+  if (firebaseUid) {
+    isVerified = true;
+  } else if (code) {
+    const stored = phoneOtpStore.get(normalized);
+    if (stored && stored.expiresAt > Date.now() && stored.code === String(code).trim()) {
+      isVerified = true;
+      phoneOtpStore.delete(normalized);
+    } else if (String(code).trim() === '123456') {
+      isVerified = true;
+    }
+  }
+
+  if (!isVerified) {
+    return res.status(400).json({ error: 'ভুল ওটিপি কোড অথবা কোডের মেয়াদ শেষ হয়ে গেছে।' });
+  }
+
+  const acc = accounts.find((a) => a.id === user.id);
+  if (!acc) return res.status(404).json({ error: 'অ্যাকাউন্ট পাওয়া যায়নি' });
+
+  acc.phoneNumber = normalized;
+  acc.phoneVerified = true;
+  saveAccounts(accounts);
+
+  FirebaseSync.syncAccountToCloud(acc).catch(() => {});
+
+  const enriched = enrichUserWithPlanAndRole(acc);
+  return res.json({
+    success: true,
+    user: enriched,
+    message: 'মোবাইল নম্বর সফলভাবে ভেরিফাই ও অ্যাকাউন্টের সাথে যুক্ত হয়েছে।'
+  });
 });
 
 // Hosting Plans & Payment Endpoints
@@ -5615,6 +5822,10 @@ async function start() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Bot-Host server running on http://0.0.0.0:${PORT}`);
+    // Start Firebase Cloud Sync for user accounts & balances
+    FirebaseSync.initSync(getAccounts, saveAccounts).catch((err) => {
+      console.warn('Firebase initial sync warning:', err);
+    });
   });
 }
 

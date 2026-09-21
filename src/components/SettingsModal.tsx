@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { 
   X, Settings, FileCode, Package, Database, ShieldCheck, Cloud, ChevronRight, HardDrive, ArrowLeft,
-  Bell, BellOff, Volume2, History, Rocket, Tag
+  Bell, BellOff, Volume2, History, Rocket, Tag, Smartphone
 } from 'lucide-react';
 import { ScriptEditor } from './ScriptEditor';
 import { DatabaseManager } from './DatabaseManager';
 import { HostingGuide } from './HostingGuide';
 import { PipManagerModal } from './PipManagerModal';
 import { DeploymentHistoryView } from './DeploymentHistoryView';
+import { PhoneVerificationFlow } from './PhoneVerificationFlow';
 import { HostedBot, AuthUser } from '../types';
 import { playBotStoppedAlert } from '../utils/audioAlert';
 
@@ -21,6 +22,7 @@ interface SettingsModalProps {
   onSelectBot: (id: string) => void;
   onBotsUpdated: () => void;
   onTestToken: () => void;
+  onUserUpdated?: (user: AuthUser) => void;
   initialTab?: string;
   soundAlertEnabled?: boolean;
   onToggleSoundAlert?: (enabled: boolean) => void;
@@ -36,6 +38,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onSelectBot,
   onBotsUpdated,
   onTestToken,
+  onUserUpdated,
   initialTab = 'overview',
   soundAlertEnabled = true,
   onToggleSoundAlert
@@ -84,6 +87,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       titleEn: 'Database & Storage Backup',
       descBn: 'বটের JSON ফাইল, ডাটাবেজ ব্যাকআপ ডাউনলোড ও স্টোরেজ চেক করুন',
       descEn: 'Download full bot data backup and inspect storage',
+      color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800'
+    },
+    {
+      id: 'phone_verification',
+      icon: Smartphone,
+      titleBn: 'মোবাইল নম্বর ভেরিফিকেশন (OTP)',
+      titleEn: 'Phone Number Verification',
+      descBn: currentUser?.phoneVerified 
+        ? `ভেরিফাইড নম্বর: ${currentUser.phoneNumber || 'সংযুক্ত'}` 
+        : 'একাউন্টে মোবাইল নম্বর যুক্ত করে ফায়ারবেস OTP দিয়ে ভেরিফাই করুন',
+      descEn: currentUser?.phoneVerified
+        ? `Verified phone: ${currentUser.phoneNumber || 'Linked'}`
+        : 'Verify and link mobile number using Firebase SMS OTP',
       color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800'
     },
     {
@@ -369,6 +385,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   onBotsUpdated();
                 }}
               />
+            ) : activeTab === 'phone_verification' ? (
+              <div className="max-w-md mx-auto py-2">
+                <PhoneVerificationFlow
+                  currentUser={currentUser}
+                  lang={lang}
+                  onSuccess={(u) => {
+                    if (onUserUpdated) onUserUpdated(u);
+                    setActiveTab('overview');
+                  }}
+                />
+              </div>
             ) : activeTab === 'database' ? (
               <DatabaseManager lang={lang} />
             ) : activeTab === 'guide' ? (
