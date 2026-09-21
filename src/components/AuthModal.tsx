@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Bot, User, Lock, Mail, Eye, EyeOff, CheckCircle2, AlertCircle, X, ExternalLink, RefreshCw, KeyRound, Sparkles, Gift, Phone, Smartphone, ShieldCheck } from 'lucide-react';
+import { Bot, User, Lock, Mail, Eye, EyeOff, CheckCircle2, AlertCircle, X, ExternalLink, RefreshCw, KeyRound, Sparkles, Gift } from 'lucide-react';
 import { AuthUser } from '../types';
-import { auth, googleProvider, signInWithPopup, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from '../lib/firebase';
+import { auth, googleProvider, signInWithPopup } from '../lib/firebase';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -18,7 +18,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   canDismiss = false,
   lang = 'bn'
 }) => {
-  const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
   const [mode, setMode] = useState<'login' | 'register' | 'reset'>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -34,14 +33,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showGoogleInput, setShowGoogleInput] = useState(false);
   const [googleEmail, setGoogleEmail] = useState('');
-
-  // Phone Auth states
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [phoneOtp, setPhoneOtp] = useState('');
-  const [phoneOtpSent, setPhoneOtpSent] = useState(false);
-  const [phoneOtpCountdown, setPhoneOtpCountdown] = useState(0);
-  const [phoneLoading, setPhoneLoading] = useState(false);
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   const [rememberedEmail, setRememberedEmail] = useState<string>(() => {
     try {
@@ -86,13 +77,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
     }
   }, [isOpen, mode]);
-
-  useEffect(() => {
-    if (phoneOtpCountdown > 0) {
-      const timer = setTimeout(() => setPhoneOtpCountdown((prev) => prev - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [phoneOtpCountdown]);
 
   if (!isOpen) return null;
 
@@ -257,135 +241,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         setShowGoogleInput(true);
         setGoogleLoading(false);
       }
-    }
-  };
-
-  const handleSendPhoneOtp = async () => {
-    setError(null);
-    setSuccessMessage(null);
-    let rawPhone = phoneNumber.trim().replace(/[\s\-\(\)]/g, '');
-    if (!rawPhone) {
-      setError(lang === 'bn' ? 'সঠিক মোবাইল নম্বর লিখুন' : 'Please enter mobile number');
-      return;
-    }
-    if (rawPhone.startsWith('01')) rawPhone = '+88' + rawPhone;
-    else if (rawPhone.startsWith('8801')) rawPhone = '+' + rawPhone;
-    else if (!rawPhone.startsWith('+')) rawPhone = '+' + rawPhone;
-
-    if (rawPhone.length < 11) {
-      setError(lang === 'bn' ? 'মোবাইল নম্বর কমপক্ষে ১১ সংখ্যার হতে হবে' : 'Mobile number must be at least 11 digits');
-      return;
-    }
-
-    setPhoneLoading(true);
-
-    // 1. Try Firebase Phone Auth (Sends real SMS via Google Firebase Phone Provider)
-    try {
-      if ((window as any).recaptchaVerifier) {
-        try {
-          (window as any).recaptchaVerifier.clear();
-        } catch {}
-        (window as any).recaptchaVerifier = undefined;
-      }
-      const container = document.getElementById('recaptcha-container');
-      if (container) {
-        const recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          size: 'invisible',
-          callback: () => {}
-        });
-        (window as any).recaptchaVerifier = recaptchaVerifier;
-        const confirmation = await signInWithPhoneNumber(auth, rawPhone, recaptchaVerifier);
-        setConfirmationResult(confirmation);
-        setPhoneOtpSent(true);
-        setPhoneOtpCountdown(60);
-        setSuccessMessage(
-          lang === 'bn'
-            ? `আপনার মোবাইলে এসএমএস (SMS)-এর মাধ্যমে ওটিপি কোড পাঠানো হয়েছে: ${rawPhone}`
-            : `SMS verification OTP sent to your phone: ${rawPhone}`
-        );
-        setPhoneLoading(false);
-        return;
-      }
-    } catch (fbErr: any) {
-      console.error('Firebase SMS verification error:', fbErr);
-      let errorMsg = fbErr?.message || '';
-      if (fbErr?.code === 'auth/quota-exceeded') {
-        errorMsg = 'ফায়ারবেস এসএমএস কোটা শেষ হয়ে গেছে। অনুগ্রহ করে পরে চেষ্টা করুন।';
-      } else if (fbErr?.code === 'auth/invalid-phone-number') {
-        errorMsg = 'মোবাইল নম্বরটি সঠিক নয়। অনুগ্রহ করে সঠিক নম্বর দিন (যেমন: 01XXXXXXXXX)।';
-      } else if (fbErr?.code === 'auth/operation-not-allowed') {
-        errorMsg = 'Firebase Console-এ Phone Authentication প্রোভাইডার সক্রিয় (Enable) করা নেই। অনুগ্রহ করে ফায়ারবেস অথেনটিকেশনে Phone Provider অন করুন।';
-      } else if (fbErr?.code === 'auth/too-many-requests') {
-        errorMsg = 'অতিরিক্ত ওটিপি রিকোয়েস্টের কারণে সাময়িক ব্লক করা হয়েছে। কিছুক্ষণ অপেক্ষা করে চেষ্টা করুন।';
-      } else if (fbErr?.code === 'auth/captcha-check-failed') {
-        errorMsg = 'reCAPTCHA যাচাই ব্যর্থ হয়েছে। পেইজটি রিফ্রেশ করে আবার চেষ্টা করুন।';
-      } else {
-        errorMsg = `অফিসিয়াল এসএমএস পাঠাতে ব্যর্থ: ${fbErr?.message || 'Firebase Phone Auth Error'}`;
-      }
-      setError(errorMsg);
-      setPhoneLoading(false);
-      return;
-    }
-  };
-
-  const handleVerifyPhoneOtp = async () => {
-    setError(null);
-    setSuccessMessage(null);
-    const rawCode = phoneOtp.trim();
-    if (!rawCode || rawCode.length < 4) {
-      setError(lang === 'bn' ? '৬-সংখ্যার ভেরিফিকেশন কোড লিখুন' : 'Please enter verification code');
-      return;
-    }
-
-    setPhoneLoading(true);
-    let firebaseUid = '';
-
-    // If Firebase ConfirmationResult is present, confirm with Firebase
-    if (confirmationResult) {
-      try {
-        const res = await confirmationResult.confirm(rawCode);
-        if (res?.user?.uid) {
-          firebaseUid = res.user.uid;
-        }
-      } catch (fbErr: any) {
-        console.warn('Firebase confirm note:', fbErr?.message);
-      }
-    }
-
-    let rawPhone = phoneNumber.trim().replace(/[\s\-\(\)]/g, '');
-    if (rawPhone.startsWith('01')) rawPhone = '+88' + rawPhone;
-    else if (rawPhone.startsWith('8801')) rawPhone = '+' + rawPhone;
-    else if (!rawPhone.startsWith('+')) rawPhone = '+' + rawPhone;
-
-    try {
-      const res = await fetch('/api/auth/phone/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phoneNumber: rawPhone,
-          code: rawCode,
-          name: name.trim() || undefined,
-          firebaseUid: firebaseUid || undefined
-        })
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || (lang === 'bn' ? 'ভেরিফিকেশন কোড সঠিক নয়' : 'Invalid verification code'));
-      }
-
-      localStorage.setItem('bot_auth_token', data.token);
-      localStorage.setItem('bot_auth_user', JSON.stringify(data.user));
-      if (data.user.email) {
-        localStorage.setItem('bot_registered_email', data.user.email);
-        setRememberedEmail(data.user.email);
-      }
-      setSuccessMessage(data.message || (lang === 'bn' ? 'মোবাইল ভেরিফিকেশন সফল হয়েছে!' : 'Verification successful!'));
-      onSuccess(data.user, data.token);
-      if (onClose) onClose();
-    } catch (err: any) {
-      setError(err.message || 'Verification failed');
-    } finally {
-      setPhoneLoading(false);
     }
   };
 
@@ -558,192 +413,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         </div>
 
-        {/* Method Switcher: Email/Google vs Mobile Number */}
-        <div className="grid grid-cols-2 gap-1.5 p-1 bg-[#0b1220] rounded-2xl border border-[#1f2d48] mb-4">
-          <button
-            type="button"
-            onClick={() => {
-              setAuthMethod('email');
-              setError(null);
-              setSuccessMessage(null);
-            }}
-            className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              authMethod === 'email'
-                ? 'bg-slate-800 text-white shadow-md border border-slate-700'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Mail className="w-3.5 h-3.5 text-pink-400" />
-            <span>{lang === 'bn' ? 'ইমেইল / গুগল' : 'Email / Google'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setAuthMethod('phone');
-              setError(null);
-              setSuccessMessage(null);
-            }}
-            className={`py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              authMethod === 'phone'
-                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-emerald-400'
-            }`}
-          >
-            <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{lang === 'bn' ? '📱 মোবাইল নম্বর (OTP)' : '📱 Mobile Phone'}</span>
-          </button>
-        </div>
-
-        {authMethod === 'phone' ? (
-          <div className="space-y-4 animate-in fade-in duration-200">
-            {/* Invisible reCAPTCHA container for Firebase Phone Auth */}
-            <div id="recaptcha-container"></div>
-
-            {mode === 'register' && !phoneOtpSent && (
-              <div className="relative">
-                <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder={lang === 'bn' ? 'আপনার পুরো নাম (ঐচ্ছিক)' : 'Full Name (Optional)'}
-                  className="w-full bg-[#0b1220] border border-[#1f2d48] focus:border-emerald-500 rounded-xl text-white placeholder-slate-500 py-3 pl-10 pr-4 text-xs focus:outline-none transition-all"
-                />
-              </div>
-            )}
-
-            {!phoneOtpSent ? (
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>{lang === 'bn' ? 'মোবাইল নম্বর প্রদান করুন:' : 'Mobile Number:'}</span>
-                  </label>
-                  <div className="flex gap-2">
-                    <div className="px-3 py-3 rounded-xl bg-[#0b1220] border border-[#1f2d48] text-emerald-400 font-mono text-xs font-bold flex items-center gap-1.5 shrink-0 select-none shadow-sm">
-                      <span>🇧🇩</span>
-                      <span>+88</span>
-                    </div>
-                    <div className="relative flex-1">
-                      <input
-                        type="tel"
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
-                        placeholder="01XXXXXXXXX"
-                        className="w-full bg-[#0b1220] border border-[#1f2d48] focus:border-emerald-500 rounded-xl text-white placeholder-slate-500 py-3 px-3.5 text-xs font-mono font-bold tracking-wide focus:outline-none transition-all"
-                        autoFocus
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-emerald-950/30 border border-emerald-500/20 rounded-xl">
-                  <p className="text-[11px] text-emerald-300 leading-relaxed flex items-start gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                    <span>
-                      {lang === 'bn'
-                        ? 'আপনার মোবাইল নম্বরে একটি ৬-সংখ্যার গোপন ভেরিফিকেশন ওটিপি (OTP) কোড পাঠানো হবে।'
-                        : 'A 6-digit confidential OTP verification code will be sent to your phone.'}
-                    </span>
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleSendPhoneOtp}
-                  disabled={phoneLoading || !phoneNumber.trim()}
-                  className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:opacity-95 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-1"
-                >
-                  {phoneLoading ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <ShieldCheck className="w-4 h-4" />
-                  )}
-                  <span>{lang === 'bn' ? 'ওটিপি (OTP) কোড পাঠান' : 'Send Verification OTP'}</span>
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3.5">
-                <div className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-between shadow-sm">
-                  <div>
-                    <p className="text-[10px] text-emerald-400 font-semibold">{lang === 'bn' ? 'কোড পাঠানো হয়েছে' : 'Code Sent To'}</p>
-                    <p className="text-xs font-mono font-bold text-white tracking-wide">{phoneNumber}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPhoneOtpSent(false);
-                      setPhoneOtp('');
-                      setError(null);
-                    }}
-                    className="text-[11px] text-emerald-400 hover:underline cursor-pointer font-medium"
-                  >
-                    {lang === 'bn' ? 'নম্বর পরিবর্তন' : 'Change Number'}
-                  </button>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1.5">
-                    <KeyRound className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>{lang === 'bn' ? '৬-সংখ্যার ভেরিফিকেশন কোড লিখুন:' : 'Enter 6-Digit OTP Code:'}</span>
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={6}
-                    value={phoneOtp}
-                    onChange={(e) => setPhoneOtp(e.target.value.replace(/\D/g, ''))}
-                    placeholder="••••••"
-                    className="w-full bg-[#0b1220] border-2 border-emerald-500/60 focus:border-emerald-400 rounded-xl text-white placeholder-slate-600 py-3 px-4 text-base font-mono tracking-widest text-center focus:outline-none transition-all font-black shadow-inner"
-                    autoFocus
-                  />
-                </div>
-
-                <div className="flex items-center justify-between text-xs px-1">
-                  <span className="text-slate-400 text-[11px]">
-                    {phoneOtpCountdown > 0
-                      ? `${lang === 'bn' ? 'পুনরায় কোড পাঠানোর সময়:' : 'Resend code in:'} ${phoneOtpCountdown}s`
-                      : ''}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={phoneOtpCountdown > 0 || phoneLoading}
-                    onClick={handleSendPhoneOtp}
-                    className="text-[11px] text-emerald-400 hover:text-emerald-300 font-bold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    {lang === 'bn' ? 'কোড পাননি? পুনরায় পাঠান' : 'Resend Code'}
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleVerifyPhoneOtp}
-                  disabled={phoneLoading || phoneOtp.length < 4}
-                  className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:opacity-95 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-1"
-                >
-                  {phoneLoading ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="w-4 h-4" />
-                  )}
-                  <span>
-                    {mode === 'register'
-                      ? (lang === 'bn' ? 'ভেরিফাই ও অ্যাকাউন্ট তৈরি করুন' : 'Verify & Create Account')
-                      : (lang === 'bn' ? 'ভেরিফাই ও লগইন করুন' : 'Verify & Sign In')}
-                  </span>
-                </button>
-              </div>
-            )}
-
-            <div className="text-center pt-2">
-              <p className="text-[11px] text-slate-400">
-                {lang === 'bn'
-                  ? '🔒 মোবাইল নম্বর ভেরিফিকেশনের মাধ্যমে আপনার অ্যাকাউন্ট, বট ও ব্যালেন্স স্থায়ীভাবে সুরক্ষিত থাকে।'
-                  : '🔒 Phone verification permanently secures your account, balance and bots.'}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <>
         {/* Quick Google Login for previously registered account */}
         {mode === 'login' && rememberedEmail && (
           <div className="mb-4 p-3 rounded-2xl bg-gradient-to-r from-blue-950/60 via-slate-900 to-indigo-950/50 border border-blue-500/40 shadow-md">
@@ -1075,8 +744,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </button>
             )}
           </div>
-        )}
-        </>
         )}
       </div>
     </div>
