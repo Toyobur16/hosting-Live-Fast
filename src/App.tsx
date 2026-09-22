@@ -4,10 +4,8 @@ import { AppStoreHeader } from './components/AppStoreHeader';
 import { SidebarDrawer } from './components/SidebarDrawer';
 import { BottomNavBar } from './components/BottomNavBar';
 import { StoreHomePage } from './components/StoreHomePage';
-import { MarketplacePage } from './components/MarketplacePage';
 import { StoreWalletPage } from './components/StoreWalletPage';
 import { DepositStorePage } from './components/DepositStorePage';
-import { WishlistPage } from './components/WishlistPage';
 import { SupportCenterPage } from './components/SupportCenterPage';
 import { ProfilePage } from './components/ProfilePage';
 import { PlansPage } from './components/PlansPage';
@@ -24,13 +22,12 @@ import { HostedBot, LogEntry, AuthUser, SiteSettings } from './types';
 import { playBotStoppedAlert } from './utils/audioAlert';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'home' | 'market' | 'wallet' | 'wishlist' | 'support' | 'profile' | 'plans' | 'bots' | 'terminal' | 'deposit-store'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'wallet' | 'support' | 'profile' | 'plans' | 'bots' | 'terminal' | 'deposit-store'>('home');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [bots, setBots] = useState<HostedBot[]>([]);
   const [selectedBotId, setSelectedBotId] = useState<string | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
-  const [wishlistIds, setWishlistIds] = useState<string[]>([]);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [siteSettings, setSiteSettings] = useState<SiteSettings>({
     siteName: 'hosting live fast',
@@ -211,49 +208,6 @@ export default function App() {
     } catch {}
   };
 
-  const fetchWishlist = async () => {
-    const token = localStorage.getItem('bot_auth_token');
-    if (!token) return;
-    try {
-      const res = await fetch('/api/wishlist', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setWishlistIds(data.itemIds || []);
-      }
-    } catch {}
-  };
-
-  const handleToggleWishlist = async (itemId: string) => {
-    if (!currentUser) {
-      setShowAuthModal(true);
-      setToastMessage(lang === 'bn' ? 'উইশলিস্টে যুক্ত করতে অনুগ্রহ করে লগইন করুন।' : 'Please log in to save to wishlist.');
-      return;
-    }
-    try {
-      const token = localStorage.getItem('bot_auth_token');
-      const res = await fetch('/api/wishlist/toggle', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ itemId })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setWishlistIds(data.itemIds || []);
-        setToastMessage(
-          data.inWishlist
-            ? (lang === 'bn' ? 'উইশলিস্টে যুক্ত করা হয়েছে ❤️' : 'Added to wishlist ❤️')
-            : (lang === 'bn' ? 'উইশলিস্ট থেকে সরানো হয়েছে' : 'Removed from wishlist')
-        );
-        setTimeout(() => setToastMessage(null), 2500);
-      }
-    } catch {}
-  };
-
   const fetchAdminOverview = async () => {
     if (currentUser?.role !== 'admin') return;
     try {
@@ -373,9 +327,6 @@ export default function App() {
 
   useEffect(() => {
     fetchBots();
-    if (currentUser) {
-      fetchWishlist();
-    }
   }, [currentUser]);
 
   useEffect(() => {
@@ -635,18 +586,6 @@ export default function App() {
           />
         )}
 
-        {/* 2. Marketplace Page */}
-        {activeTab === 'market' && (
-          <MarketplacePage
-            user={currentUser}
-            onNavigateToWallet={() => setActiveTab('wallet')}
-            onNavigateToPlans={() => setActiveTab('plans')}
-            onOpenAuthModal={() => setShowAuthModal(true)}
-            wishlistIds={wishlistIds}
-            onToggleWishlist={handleToggleWishlist}
-          />
-        )}
-
         {/* 3. Wallet & Deposit Page */}
         {activeTab === 'wallet' && (
           <StoreWalletPage
@@ -672,18 +611,6 @@ export default function App() {
               checkAuth();
             }}
             lang={lang}
-          />
-        )}
-
-        {/* 4. Wishlist Page */}
-        {activeTab === 'wishlist' && (
-          <WishlistPage
-            user={currentUser}
-            wishlistIds={wishlistIds}
-            onToggleWishlist={handleToggleWishlist}
-            onNavigateToMarket={() => setActiveTab('market')}
-            onNavigateToWallet={() => setActiveTab('wallet')}
-            onOpenAuthModal={() => setShowAuthModal(true)}
           />
         )}
 

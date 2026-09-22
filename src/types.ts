@@ -191,10 +191,12 @@ export interface PaymentSettings {
   bkashNumber: string;
   bkashEnabled?: boolean;
   bkashQrUrl?: string;
+  bkashLogoUrl?: string;
   nagadNumber: string;
   nagadEnabled?: boolean;
   nagadQrUrl?: string;
-  rocketNumber: string;
+  nagadLogoUrl?: string;
+  rocketNumber?: string;
   rocketEnabled?: boolean;
   rocketQrUrl?: string;
   customMethods?: CustomDepositMethod[];

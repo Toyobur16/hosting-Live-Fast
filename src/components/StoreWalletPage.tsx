@@ -57,9 +57,7 @@ export function StoreWalletPage({
     bkashNumber: '01614572747',
     bkashEnabled: true,
     nagadNumber: '01304104492',
-    nagadEnabled: true,
-    rocketNumber: '01304104492',
-    rocketEnabled: true
+    nagadEnabled: true
   });
 
   const [selectedGateway, setSelectedGateway] = useState<string>('binance');
@@ -492,7 +490,6 @@ export function StoreWalletPage({
     if (selectedGateway === 'binance') return paymentSettings.binancePayId || paymentSettings.binanceUid || paymentSettings.binanceId || '922593999';
     if (selectedGateway === 'bkash') return paymentSettings.bkashNumber || '01614572747';
     if (selectedGateway === 'nagad') return paymentSettings.nagadNumber || '01304104492';
-    if (selectedGateway === 'rocket') return paymentSettings.rocketNumber || '01304104492';
     const custom = paymentSettings.customMethods?.find((cm) => cm.id === selectedGateway);
     if (custom) return custom.account || '';
     return '';
@@ -502,19 +499,14 @@ export function StoreWalletPage({
     if (selectedGateway === 'binance') return 'Binance (USDT)';
     if (selectedGateway === 'bkash') return 'bKash (বিকাশ)';
     if (selectedGateway === 'nagad') return 'Nagad (নগদ)';
-    if (selectedGateway === 'rocket') return 'Rocket (রকেট)';
     const custom = paymentSettings.customMethods?.find((cm) => cm.id === selectedGateway);
     if (custom) return custom.name || 'Custom Deposit';
     return '';
   };
 
   const getGatewayQrUrl = () => {
+    // Only Binance displays QR code scanner as requested by user
     if (selectedGateway === 'binance') return paymentSettings.binanceQrUrl || '';
-    if (selectedGateway === 'bkash') return paymentSettings.bkashQrUrl || '';
-    if (selectedGateway === 'nagad') return paymentSettings.nagadQrUrl || '';
-    if (selectedGateway === 'rocket') return paymentSettings.rocketQrUrl || '';
-    const custom = paymentSettings.customMethods?.find((cm) => cm.id === selectedGateway);
-    if (custom) return custom.imageUrl || '';
     return '';
   };
 
@@ -994,37 +986,6 @@ export function StoreWalletPage({
                   <div className="min-w-0">
                     <span className="text-xs font-black text-white block truncate">Nagad</span>
                     <span className="text-[10px] text-orange-400 font-bold truncate">Send Money</span>
-                  </div>
-                </div>
-              </button>
-            )}
-
-            {/* 4. Rocket */}
-            {paymentSettings.rocketEnabled !== false && (
-              <button
-                type="button"
-                onClick={() => setSelectedGateway('rocket')}
-                className={`p-3.5 rounded-2xl border text-left cursor-pointer transition-all ${
-                  selectedGateway === 'rocket'
-                    ? 'bg-purple-500/15 border-purple-500 ring-2 ring-purple-500/30 shadow-lg'
-                    : 'bg-[#0d1424] border-[#1e2e42] hover:border-purple-500/50'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  {paymentSettings.rocketQrUrl ? (
-                    <img
-                      src={paymentSettings.rocketQrUrl}
-                      alt="Rocket"
-                      className="w-8 h-8 rounded-lg object-cover border border-purple-500/40 shrink-0"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center font-black text-xs shrink-0">
-                      রকেট
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <span className="text-xs font-black text-white block truncate">Rocket</span>
-                    <span className="text-[10px] text-purple-400 font-bold truncate">Send Money</span>
                   </div>
                 </div>
               </button>

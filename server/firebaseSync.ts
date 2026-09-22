@@ -193,4 +193,40 @@ export class FirebaseSync {
       console.warn('FirebaseSync initial sync warning:', err.message || err);
     }
   }
+
+  /**
+   * Sync deposit request to Cloud Firestore
+   */
+  static async syncPlanRequestToCloud(planReq: any): Promise<boolean> {
+    if (!planReq || !planReq.id) return false;
+    try {
+      const docId = encodeURIComponent(planReq.id);
+      const fields: Record<string, any> = {};
+      for (const [key, val] of Object.entries(planReq)) {
+        if (val !== undefined) {
+          fields[key] = toFirestoreValue(val);
+        }
+      }
+
+      let url = `${BASE_URL}/plan_requests/${docId}?key=${API_KEY}`;
+      let res = await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields })
+      });
+
+      if (!res.ok && FIRESTORE_DATABASE_ID !== '(default)') {
+        const fallbackUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/plan_requests/${docId}?key=${API_KEY}`;
+        await fetch(fallbackUrl, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields })
+        });
+      }
+      return true;
+    } catch (err: any) {
+      console.warn('FirebaseSync syncPlanRequestToCloud warning:', err.message || err);
+      return false;
+    }
+  }
 }

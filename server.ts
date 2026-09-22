@@ -259,11 +259,12 @@ const DEFAULT_PAYMENT_SETTINGS = {
   binancePaySecretKey: '',
   binancePayMerchantId: '',
   bkashNumber: '01614572747',
-  bkashEnabled: false,
+  bkashEnabled: true,
+  bkashLogoUrl: '',
   nagadNumber: '01304104492',
-  nagadEnabled: false,
-  rocketNumber: '01304104492',
-  rocketEnabled: false,
+  nagadEnabled: true,
+  nagadLogoUrl: '',
+  customMethods: [],
   instructionsBn: 'বাইন্যান্স (Binance Pay / UID) দিয়ে নির্ধারিত ডলার পাঠিয়ে আপনার Transaction ID / Order ID এবং আপনার প্রেরক আইডি নিচে লিখে সাবমিট করুন। এডমিন অনুমোদন করলেই সাথে সাথে আপনার ওয়ালেটে ব্যালেন্স জমা হবে।',
   instructionsEn: 'Send USDT via Binance Pay / UID, then submit your Binance Transaction ID / Order ID below. Once approved by admin, your balance is credited instantly.'
 };
@@ -654,6 +655,13 @@ function getPlanRequests(): any[] {
 
 function savePlanRequests(data: any[]) {
   fs.writeFileSync(PLAN_REQUESTS_FILE, JSON.stringify(data, null, 2) + '\n', 'utf-8');
+  if (Array.isArray(data)) {
+    for (const pr of data.slice(0, 50)) {
+      if (pr && pr.id) {
+        FirebaseSync.syncPlanRequestToCloud(pr).catch(() => {});
+      }
+    }
+  }
 }
 
 function getPaymentSettings(): any {

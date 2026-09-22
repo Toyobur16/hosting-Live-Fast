@@ -30,7 +30,7 @@ export const PlansModal: React.FC<PlansModalProps> = ({
   const [activeView, setActiveView] = useState<'plans' | 'deposit' | 'history'>('plans');
 
   // Deposit Form State
-  const [depositMethod, setDepositMethod] = useState<'binance' | 'bkash' | 'nagad' | 'rocket'>('binance');
+  const [depositMethod, setDepositMethod] = useState<'binance' | 'bkash' | 'nagad'>('binance');
   const [depositCurrency, setDepositCurrency] = useState<'USD'>('USD');
   const [depositAmount, setDepositAmount] = useState<string>('5');
   const [senderIdentifier, setSenderIdentifier] = useState('');
@@ -755,14 +755,12 @@ export const PlansModal: React.FC<PlansModalProps> = ({
                   <div className="p-3 rounded-lg bg-[#0d1627] border border-[#1f2d48] flex items-center justify-between">
                     <div>
                       <p className="text-[10px] text-slate-400 font-bold uppercase">
-                        {depositMethod === 'bkash' ? 'bKash Personal (Send Money)' : depositMethod === 'nagad' ? 'Nagad Personal (Send Money)' : 'Rocket Personal (Send Money)'}
+                        {depositMethod === 'bkash' ? 'bKash Personal (Send Money)' : 'Nagad Personal (Send Money)'}
                       </p>
                       <p className="font-mono text-white font-black text-base select-all">
                         {depositMethod === 'bkash'
                           ? paymentSettings?.bkashNumber || '01711223344'
-                          : depositMethod === 'nagad'
-                          ? paymentSettings?.nagadNumber || '01811223344'
-                          : paymentSettings?.rocketNumber || '01911223344'}
+                          : paymentSettings?.nagadNumber || '01811223344'}
                       </p>
                     </div>
                     <button
@@ -770,9 +768,7 @@ export const PlansModal: React.FC<PlansModalProps> = ({
                       onClick={() => {
                         const num = depositMethod === 'bkash'
                           ? paymentSettings?.bkashNumber || '01711223344'
-                          : depositMethod === 'nagad'
-                          ? paymentSettings?.nagadNumber || '01811223344'
-                          : paymentSettings?.rocketNumber || '01911223344';
+                          : paymentSettings?.nagadNumber || '01811223344';
                         handleCopy(num, 'bd_num');
                       }}
                       className="px-3 py-1.5 rounded bg-[#16233b] hover:bg-[#0088cc]/20 text-slate-300 hover:text-[#0088cc] text-xs font-bold flex items-center gap-1.5 cursor-pointer"

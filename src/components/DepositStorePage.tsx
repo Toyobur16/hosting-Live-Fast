@@ -1,32 +1,25 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Wallet,
   Sparkles,
-  ArrowRight,
   Copy,
   Check,
-  ShieldCheck,
-  Zap,
-  ExternalLink,
-  QrCode,
   Smartphone,
   RefreshCw,
   AlertCircle,
   CheckCircle2,
-  Clock,
-  ChevronRight,
-  TrendingUp,
-  Receipt,
   X,
   CreditCard,
-  Building2,
   Coins,
   History,
-  Info,
-  Gift
+  Gift,
+  ExternalLink,
+  ChevronRight,
+  ShieldCheck,
+  Send
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { AuthUser, PaymentSettings, BinancePayOrder, CustomDepositMethod } from '../types';
+import { AuthUser, PaymentSettings } from '../types';
 import { playDepositSuccessSound } from '../utils/audioAlert';
 
 interface DepositStorePageProps {
@@ -47,7 +40,6 @@ interface StorePackage {
   popular?: boolean;
   bestValue?: boolean;
   descriptionBn: string;
-  descriptionEn: string;
 }
 
 const STORE_PACKAGES: StorePackage[] = [
@@ -58,8 +50,7 @@ const STORE_PACKAGES: StorePackage[] = [
     bonusPercent: 0,
     bonusUsd: 0,
     tag: 'স্টার্টার',
-    descriptionBn: '১টি বট হোস্টিং অথবা টেস্টের জন্য আদর্শ',
-    descriptionEn: 'Ideal for 1 bot test or trial'
+    descriptionBn: '১টি বট হোস্টিং অথবা টেস্টের জন্য আদর্শ'
   },
   {
     id: 'pack_2',
@@ -68,8 +59,7 @@ const STORE_PACKAGES: StorePackage[] = [
     bonusPercent: 0,
     bonusUsd: 0,
     tag: 'স্ট্যান্ডার্ড',
-    descriptionBn: 'বেসিক হোস্টিং ও সম্পূর্ণ রিয়েলটাইম কনসোল',
-    descriptionEn: 'Basic hosting with live terminal'
+    descriptionBn: 'বেসিক হোস্টিং ও সম্পূর্ণ রিয়েলটাইম কনসোল'
   },
   {
     id: 'pack_5',
@@ -79,8 +69,7 @@ const STORE_PACKAGES: StorePackage[] = [
     bonusUsd: 0.25,
     popular: true,
     tag: 'সবচেয়ে জনপ্রিয়',
-    descriptionBn: 'বোনাস সহ $5.25 ব্যালেন্স যোগ হবে',
-    descriptionEn: 'Get $5.25 credit with +5% bonus'
+    descriptionBn: 'বোনাস সহ $5.25 ব্যালেন্স যোগ হবে'
   },
   {
     id: 'pack_10',
@@ -89,8 +78,7 @@ const STORE_PACKAGES: StorePackage[] = [
     bonusPercent: 10,
     bonusUsd: 1.0,
     tag: 'প্রো প্যাক',
-    descriptionBn: 'বোনাস সহ $11.00 ব্যালেন্স যোগ হবে',
-    descriptionEn: 'Get $11.00 credit with +10% bonus'
+    descriptionBn: 'বোনাস সহ $11.00 ব্যালেন্স যোগ হবে'
   },
   {
     id: 'pack_20',
@@ -100,8 +88,7 @@ const STORE_PACKAGES: StorePackage[] = [
     bonusUsd: 3.0,
     bestValue: true,
     tag: 'ভিআইপি ডিল',
-    descriptionBn: 'বোনাস সহ $23.00 ব্যালেন্স যোগ হবে',
-    descriptionEn: 'Get $23.00 credit with +15% bonus'
+    descriptionBn: 'বোনাস সহ $23.00 ব্যালেন্স যোগ হবে'
   },
   {
     id: 'pack_50',
@@ -110,19 +97,52 @@ const STORE_PACKAGES: StorePackage[] = [
     bonusPercent: 20,
     bonusUsd: 10.0,
     tag: 'এন্টারপ্রাইজ',
-    descriptionBn: 'বোনাস সহ $60.00 ব্যালেন্স যোগ হবে',
-    descriptionEn: 'Get $60.00 credit with +20% bonus'
+    descriptionBn: 'বোনাস সহ $60.00 ব্যালেন্স যোগ হবে'
   }
 ];
+
+/**
+ * High-Definition Brand Logo Components
+ */
+export const BkashLogo = ({ className = "w-11 h-11" }: { className?: string }) => (
+  <div className={`${className} rounded-2xl bg-[#E2136E] flex items-center justify-center p-2 shadow-lg shadow-[#E2136E]/25 shrink-0`}>
+    <svg viewBox="0 0 100 100" fill="none" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="50,15 85,38 72,65 50,45" fill="white" opacity="0.95" />
+      <polygon points="15,48 50,15 50,45 32,68" fill="white" opacity="0.9" />
+      <polygon points="50,45 72,65 50,85" fill="white" opacity="0.8" />
+      <polygon points="32,68 50,45 50,85" fill="white" opacity="0.75" />
+      <polygon points="50,15 62,5 72,25" fill="white" opacity="0.95" />
+    </svg>
+  </div>
+);
+
+export const NagadLogo = ({ className = "w-11 h-11" }: { className?: string }) => (
+  <div className={`${className} rounded-2xl bg-gradient-to-tr from-[#D9381E] via-[#F15A24] to-[#F7931E] flex items-center justify-center p-2 shadow-lg shadow-[#F15A24]/25 shrink-0`}>
+    <svg viewBox="0 0 100 100" fill="none" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+      <path d="M50 10C36 28 28 44 28 60C28 75 39 88 54 88C69 88 80 75 75 56C73 46 64 39 64 39C64 39 68 47 64 56C60 64 49 65 45 56C41 46 47 35 50 10Z" fill="white" />
+      <circle cx="53" cy="62" r="7" fill="#F7931E" opacity="0.9" />
+    </svg>
+  </div>
+);
+
+export const BinanceLogo = ({ className = "w-11 h-11" }: { className?: string }) => (
+  <div className={`${className} rounded-2xl bg-[#F3BA2F] flex items-center justify-center p-2 shadow-lg shadow-[#F3BA2F]/25 shrink-0 text-slate-950 font-black`}>
+    <svg viewBox="0 0 100 100" fill="currentColor" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="50,16 62,28 50,40 38,28" />
+      <polygon points="76,40 88,52 76,64 64,52" />
+      <polygon points="24,40 36,52 24,64 12,52" />
+      <polygon points="50,64 62,76 50,88 38,76" />
+      <polygon points="50,46 56,52 50,58 44,52" />
+    </svg>
+  </div>
+);
 
 export function DepositStorePage({
   user,
   onOpenAuthModal,
-  onNavigateToPlans,
-  onUserUpdated,
-  lang = 'bn'
+  onUserUpdated
 }: DepositStorePageProps) {
-  const [selectedPackageId, setSelectedPackageId] = useState<string>('pack_5');
+  const [selectedPackageId, setSelectedPackageId] = useState<string>('pack_1');
   const [customAmount, setCustomAmount] = useState<string>('');
   const [isCustom, setIsCustom] = useState<boolean>(false);
 
@@ -137,51 +157,43 @@ export function DepositStorePage({
     bkashEnabled: true,
     nagadNumber: '01304104492',
     nagadEnabled: true,
-    rocketNumber: '01304104492',
-    rocketEnabled: true,
     customMethods: []
   });
 
-  const [selectedGateway, setSelectedGateway] = useState<string>('binance');
+  const [selectedGateway, setSelectedGateway] = useState<string>('bkash');
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  // Manual Submission Form
+  // Modal State
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [orderId, setOrderId] = useState<string>(() => Math.floor(1000000000 + Math.random() * 9000000000).toString());
+
+  // Form Submission
   const [senderIdentifier, setSenderIdentifier] = useState('');
   const [transactionId, setTransactionId] = useState('');
   const [submittingManual, setSubmittingManual] = useState(false);
   const [manualMessage, setManualMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Instant Verification Tool Form
-  const [verifyTrxId, setVerifyTrxId] = useState('');
-  const [verifyingTrx, setVerifyingTrx] = useState(false);
-  const [verifyResult, setVerifyResult] = useState<{ success: boolean; message: string } | null>(null);
-
-  // Live Binance Order & Polling
-  const [binanceOrder, setBinanceOrder] = useState<BinancePayOrder | null>(null);
-  const [creatingOrder, setCreatingOrder] = useState(false);
-  const [isOrderPaid, setIsOrderPaid] = useState(false);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  // Success Confirmation Modal
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [submittedReceipt, setSubmittedReceipt] = useState<{ orderId: string; amount: number; method: string; trxId: string } | null>(null);
 
   // Auto-sync & User Balance
   const [isSyncing, setIsSyncing] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [showCelebration, setShowCelebration] = useState(false);
-  const [creditedAmount, setCreditedAmount] = useState<number>(0);
 
   // Deposit History
   const [myDeposits, setMyDeposits] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'store' | 'verify' | 'history'>('store');
+  const [activeTab, setActiveTab] = useState<'store' | 'history'>('store');
 
   const BDT_RATE = 120; // 1 USDT = 120 BDT
 
-  // Calculate current final amount in USD and BDT
+  // Calculate active final amount
   const activeAmountUsd = useMemo(() => {
     if (isCustom) {
       const val = parseFloat(customAmount);
       return isNaN(val) || val <= 0 ? 0 : val;
     }
     const pack = STORE_PACKAGES.find((p) => p.id === selectedPackageId);
-    return pack ? pack.usd : 5;
+    return pack ? pack.usd : 1;
   }, [isCustom, customAmount, selectedPackageId]);
 
   const activeAmountBdt = Math.round(activeAmountUsd * BDT_RATE);
@@ -197,6 +209,68 @@ export function DepositStorePage({
     const pack = STORE_PACKAGES.find((p) => p.id === selectedPackageId);
     return pack ? pack.bonusUsd : 0;
   }, [isCustom, activeAmountUsd, selectedPackageId]);
+
+  // Selected Custom Method
+  const selectedCustom = paymentSettings.customMethods?.find((cm) => cm.id === selectedGateway);
+
+  // Method details helper
+  const methodDetails = useMemo(() => {
+    if (selectedGateway === 'binance') {
+      return {
+        name: 'Binance Pay',
+        checkoutTitle: 'Binance Pay Checkout',
+        accountLabel: 'Binance Pay ID:',
+        accountValue: paymentSettings.binancePayId || paymentSettings.binanceUid || '922593999',
+        notice: 'Binance Pay ID তে সেন্ড করুন অথবা QR স্ক্যান করুন',
+        hasQr: true,
+        qrImageUrl: paymentSettings.binanceQrUrl || `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://app.binance.com/qr/dop?id=${paymentSettings.binancePayId || '922593999'}`,
+        appButtonText: 'Binance অ্যাপে ওপেন করুন',
+        appUrl: `binance://payment/pay?merchantId=${paymentSettings.binancePayId || '922593999'}&amount=${activeAmountUsd}`,
+        placeholder: 'e.g.  2938491829...',
+        trxLabel: 'পেমেন্ট শেষ হলে Binance Order ID / TrxID দিন:'
+      };
+    }
+    if (selectedGateway === 'bkash') {
+      return {
+        name: 'bKash (বিকাশ)',
+        checkoutTitle: 'bKash Checkout',
+        accountLabel: 'বিকাশ পার্সোনাল নম্বর (Send Money):',
+        accountValue: paymentSettings.bkashNumber || '01614572747',
+        notice: 'বিকাশ পার্সোনাল নাম্বারে Send Money করুন',
+        hasQr: false, // QR strictly disabled for bKash
+        appButtonText: 'বিকাশ অ্যাপে ওপেন করুন',
+        appUrl: 'bkash://',
+        placeholder: 'e.g.  BLX9827361...',
+        trxLabel: 'পেমেন্ট শেষ হলে বিকাশ TrxID / ট্রানজেকশন আইডি দিন:'
+      };
+    }
+    if (selectedGateway === 'nagad') {
+      return {
+        name: 'Nagad (নগদ)',
+        checkoutTitle: 'Nagad Checkout',
+        accountLabel: 'নগদ পার্সোনাল নম্বর (Send Money):',
+        accountValue: paymentSettings.nagadNumber || '01304104492',
+        notice: 'নগদ পার্সোনাল নাম্বারে Send Money করুন',
+        hasQr: false, // QR strictly disabled for Nagad
+        appButtonText: 'নগদ অ্যাপে ওপেন করুন',
+        appUrl: 'nagad://',
+        placeholder: 'e.g.  9JKA8721...',
+        trxLabel: 'পেমেন্ট শেষ হলে নগদ TrxID / ট্রানজেকশন আইডি দিন:'
+      };
+    }
+    return {
+      name: selectedCustom?.name || 'Custom Pay',
+      checkoutTitle: `${selectedCustom?.name || 'Custom'} Checkout`,
+      accountLabel: 'একাউন্ট নম্বর / তথ্য:',
+      accountValue: selectedCustom?.account || '',
+      notice: selectedCustom?.instructions || 'উল্লেখিত একাউন্টে Send Money করুন',
+      hasQr: false, // QR disabled for custom methods
+      appButtonText: `${selectedCustom?.name || 'পেমেন্ট'} অ্যাপে ওপেন করুন`,
+      appUrl: '',
+      placeholder: 'e.g.  TrxID বা লেনদেন নম্বর...',
+      trxLabel: 'পেমেন্ট শেষ হলে TrxID / ট্রানজেকশন আইডি দিন:'
+    };
+  }, [selectedGateway, paymentSettings, selectedCustom, activeAmountUsd]);
 
   // Fetch payment settings
   const fetchSettings = async () => {
@@ -261,100 +335,29 @@ export function DepositStorePage({
     if (user) {
       handleAutoSync(true);
     }
-    const interval = setInterval(() => {
-      if (user) handleAutoSync(true);
-    }, 6000);
-    return () => clearInterval(interval);
   }, [user?.id]);
 
   // Copy helper
   const handleCopy = (text: string, fieldId: string) => {
+    if (!text) return;
     navigator.clipboard.writeText(text);
     setCopiedField(fieldId);
     setTimeout(() => setCopiedField(null), 2500);
   };
 
-  // Create Live Binance Pay Order
-  const handleCreateBinanceOrder = async () => {
-    if (!user) {
-      onOpenAuthModal();
-      return;
-    }
-    if (activeAmountUsd < 0.1) {
-      setManualMessage({ type: 'error', text: 'সর্বনিম্ন ডিপোজিট পরিমাণ $0.10 USDT' });
-      return;
-    }
-
-    try {
-      setCreatingOrder(true);
-      setManualMessage(null);
-      setIsOrderPaid(false);
-      const token = localStorage.getItem('bot_auth_token');
-      const res = await fetch('/api/binance-pay/create-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ amount: activeAmountUsd })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setBinanceOrder(data.order);
-        startPollingOrder(data.order.orderId);
-      } else {
-        setManualMessage({ type: 'error', text: data.error || 'অর্ডার তৈরিতে সমস্যা হয়েছে।' });
-      }
-    } catch (err: any) {
-      setManualMessage({ type: 'error', text: err.message || 'নেটওয়ার্ক এরর' });
-    } finally {
-      setCreatingOrder(false);
-    }
-  };
-
-  // Start polling for Binance order payment
-  const startPollingOrder = (orderId: string) => {
-    if (pollingRef.current) clearInterval(pollingRef.current);
-    const token = localStorage.getItem('bot_auth_token');
-
-    pollingRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/binance-pay/check-status?orderId=${orderId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (res.ok && data.status === 'PAID') {
-          clearInterval(pollingRef.current!);
-          setIsOrderPaid(true);
-          setCreditedAmount(data.amount || activeAmountUsd);
-          setShowCelebration(true);
-          playDepositSuccessSound();
-          handleAutoSync();
-        }
-      } catch {}
-    }, 3000);
-  };
-
-  // Stop polling on unmount
-  useEffect(() => {
-    return () => {
-      if (pollingRef.current) clearInterval(pollingRef.current);
-    };
-  }, []);
-
-  // Submit Manual Deposit Form
-  const handleSubmitManual = async (e: React.FormEvent) => {
+  // Submit Deposit
+  const handleSubmitDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
       onOpenAuthModal();
       return;
     }
-    if (!senderIdentifier.trim()) {
-      setManualMessage({ type: 'error', text: 'প্রেরক ফোন নাম্বার বা বাইন্যান্স আইডি লিখুন।' });
+    if (!transactionId.trim()) {
+      setManualMessage({ type: 'error', text: 'অনুগ্রহ করে Transaction ID (TrxID) লিখুন।' });
       return;
     }
-    if (!transactionId.trim()) {
-      setManualMessage({ type: 'error', text: 'Transaction ID (TrxID) লিখুন।' });
+    if (selectedGateway !== 'binance' && !senderIdentifier.trim()) {
+      setManualMessage({ type: 'error', text: 'যে নাম্বার থেকে টাকা পাঠিয়েছেন তা লিখুন।' });
       return;
     }
     if (activeAmountUsd <= 0) {
@@ -376,26 +379,30 @@ export function DepositStorePage({
           amount: activeAmountUsd,
           currency: 'USD',
           method: selectedGateway,
-          senderIdentifier: senderIdentifier.trim(),
+          senderIdentifier: senderIdentifier.trim() || 'Binance User',
           transactionId: transactionId.trim(),
-          note: `ডিপোজিট স্টোর প্যাকেজ ($${activeAmountUsd} USDT)`
+          orderId: orderId,
+          note: `ডিপোজিট স্টোর প্যাকেজ ($${activeAmountUsd} USDT / ৳${activeAmountBdt} BDT)`
         })
       });
 
       const data = await res.json();
       if (res.ok && data.success) {
-        if (data.autoApproved) {
-          playDepositSuccessSound();
-          setCreditedAmount(data.creditedAmount || activeAmountUsd);
-          setShowCelebration(true);
-        }
-        setManualMessage({
-          type: 'success',
-          text: data.message || 'ডিপোজিট রিকোয়েস্ট সফলভাবে জমা হয়েছে!'
+        playDepositSuccessSound();
+        setSubmittedReceipt({
+          orderId: orderId,
+          amount: activeAmountUsd,
+          method: methodDetails.name,
+          trxId: transactionId.trim()
         });
-        setSenderIdentifier('');
+        setShowSuccessModal(true);
+        setShowCheckoutModal(false);
         setTransactionId('');
-        handleAutoSync();
+        setSenderIdentifier('');
+        setManualMessage(null);
+        // Generate fresh order ID for next payment
+        setOrderId(Math.floor(1000000000 + Math.random() * 9000000000).toString());
+        handleAutoSync(true);
       } else {
         setManualMessage({ type: 'error', text: data.error || 'সাবমিট ব্যর্থ হয়েছে।' });
       }
@@ -406,58 +413,204 @@ export function DepositStorePage({
     }
   };
 
-  // Instant Verification via Binance Personal API
-  const handleInstantVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) {
-      onOpenAuthModal();
-      return;
-    }
-    if (!verifyTrxId.trim()) {
-      setVerifyResult({ success: false, message: 'অনুগ্রহ করে Transaction ID বা Binance Pay ID দিন।' });
-      return;
-    }
+  /**
+   * EXACT CHECKOUT CARD LAYOUT
+   * As specified in user's reference screenshot:
+   * Header -> Amount -> Account Number -> App Button -> QR Code (ONLY Binance) -> TrxID Input -> Confirm Button
+   */
+  const renderCheckoutCard = (isModal = false) => (
+    <div className={`w-full bg-[#0a1122] border border-[#1b2b46] rounded-3xl p-5 sm:p-7 shadow-2xl space-y-4 ${isModal ? 'max-w-lg' : ''}`}>
+      {/* 1. Header with Circular Icon, Title, Order ID and optional Close button */}
+      <div className="flex items-center justify-between gap-3 pb-2 border-b border-[#16233b]">
+        <div className="flex items-center gap-3">
+          {selectedGateway === 'bkash' ? (
+            paymentSettings.bkashLogoUrl ? (
+              <img src={paymentSettings.bkashLogoUrl} alt="bKash" className="w-12 h-12 rounded-2xl object-cover shadow-lg shadow-[#E2136E]/20 shrink-0" />
+            ) : (
+              <BkashLogo className="w-12 h-12" />
+            )
+          ) : selectedGateway === 'nagad' ? (
+            paymentSettings.nagadLogoUrl ? (
+              <img src={paymentSettings.nagadLogoUrl} alt="Nagad" className="w-12 h-12 rounded-2xl object-cover shadow-lg shadow-[#F15A24]/20 shrink-0" />
+            ) : (
+              <NagadLogo className="w-12 h-12" />
+            )
+          ) : selectedGateway === 'binance' ? (
+            <BinanceLogo className="w-12 h-12" />
+          ) : selectedCustom?.imageUrl ? (
+            <img src={selectedCustom.imageUrl} alt={selectedCustom.name} className="w-12 h-12 rounded-2xl object-cover border border-emerald-400/40 shrink-0" />
+          ) : (
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-sm border border-emerald-500/40 shrink-0">
+              <CreditCard className="w-6 h-6" />
+            </div>
+          )}
 
-    try {
-      setVerifyingTrx(true);
-      setVerifyResult(null);
-      const token = localStorage.getItem('bot_auth_token');
-      const res = await fetch('/api/binance-pay/verify-transaction', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ transactionId: verifyTrxId.trim() })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setVerifyResult({
-          success: true,
-          message: data.message || `সফলভাবে $${data.amount} USDT ওয়ালেটে যুক্ত হয়েছে!`
-        });
-        setCreditedAmount(data.amount);
-        setShowCelebration(true);
-        playDepositSuccessSound();
-        setVerifyTrxId('');
-        handleAutoSync();
-      } else {
-        setVerifyResult({
-          success: false,
-          message: data.error || 'ট্রানজেকশন মেলেনি। অনুগ্রহ করে ১-২ মিনিট পর আবার চেষ্টা করুন।'
-        });
-      }
-    } catch (err: any) {
-      setVerifyResult({
-        success: false,
-        message: err.message || 'সার্ভার সংযোগে ত্রুটি'
-      });
-    } finally {
-      setVerifyingTrx(false);
-    }
-  };
+          <div>
+            <h3 className="text-base sm:text-lg font-black text-white leading-tight">
+              {methodDetails.checkoutTitle}
+            </h3>
+            <span className="text-xs font-mono text-slate-400">
+              Order: #{orderId}
+            </span>
+          </div>
+        </div>
 
-  const selectedCustom = paymentSettings.customMethods?.find((cm) => cm.id === selectedGateway);
+        {isModal && (
+          <button
+            type="button"
+            onClick={() => setShowCheckoutModal(false)}
+            className="w-8 h-8 rounded-full bg-[#142036] hover:bg-[#1f2f4e] text-slate-400 hover:text-white flex items-center justify-center transition cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      {/* 2. Amount Box */}
+      <div className="p-4 rounded-2xl bg-[#060a14] border border-[#17253d] space-y-2">
+        <div className="text-xs font-semibold text-slate-300">
+          পরিশোধযোগ্য পরিমাণ:
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-2xl sm:text-3xl font-black text-amber-400 font-mono tracking-wide">
+            {selectedGateway === 'binance' ? (
+              <span>${activeAmountUsd}  USDT</span>
+            ) : (
+              <span>৳{activeAmountBdt} BDT <span className="text-sm text-slate-400 font-normal">(${activeAmountUsd} USDT)</span></span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => handleCopy(selectedGateway === 'binance' ? activeAmountUsd.toString() : activeAmountBdt.toString(), 'amt')}
+            className="px-3.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+          >
+            {copiedField === 'amt' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+            <span>{copiedField === 'amt' ? 'কপি হয়েছে' : 'কপি'}</span>
+          </button>
+        </div>
+        <div className="text-xs text-slate-300 font-medium flex items-center gap-1.5 pt-0.5">
+          <span className="text-amber-400">🟡</span>
+          <span>{methodDetails.notice}</span>
+        </div>
+      </div>
+
+      {/* 3. Account Number / Pay ID Box */}
+      <div className="p-4 rounded-2xl bg-[#060a14] border border-[#17253d] space-y-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-semibold text-slate-400">
+            {methodDetails.accountLabel}
+          </span>
+          <button
+            type="button"
+            onClick={() => handleCopy(methodDetails.accountValue, 'accNum')}
+            className="px-3.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+          >
+            {copiedField === 'accNum' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+            <span>{copiedField === 'accNum' ? 'কপি হয়েছে' : 'কপি'}</span>
+          </button>
+        </div>
+        <div className="text-xl sm:text-2xl font-black text-amber-400 font-mono tracking-wider break-all">
+          {methodDetails.accountValue}
+        </div>
+      </div>
+
+      {/* 4. Action Button: Open App */}
+      {methodDetails.appUrl ? (
+        <a
+          href={methodDetails.appUrl}
+          className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg transition cursor-pointer"
+        >
+          <ExternalLink className="w-4 h-4 stroke-[2.5]" />
+          <span>{methodDetails.appButtonText}</span>
+        </a>
+      ) : (
+        <div className="text-center text-xs text-slate-400 py-1">
+          উপরের নাম্বারে উল্লেখিত টাকা Send Money করুন।
+        </div>
+      )}
+
+      {/* 5. QR Code Card - ONLY FOR BINANCE! (Omitted completely for Nagad, bKash, and Custom methods) */}
+      {methodDetails.hasQr && methodDetails.qrImageUrl && (
+        <div className="p-4 rounded-2xl bg-[#060a14] border border-[#17253d] flex flex-col items-center justify-center text-center space-y-3">
+          <div className="p-3 bg-white rounded-2xl shadow-xl border border-amber-400/30 inline-block">
+            <img
+              src={methodDetails.qrImageUrl}
+              alt="Binance QR"
+              className="w-40 h-40 sm:w-44 sm:h-44 object-contain"
+            />
+          </div>
+          <p className="text-xs text-slate-300 font-medium max-w-xs leading-relaxed">
+            Binance মোবাইল অ্যাপ দিয়ে উপরের QR কোডটি স্ক্যান করেও পে করতে পারেন।
+          </p>
+        </div>
+      )}
+
+      {/* 6. TrxID / Transaction Details Form */}
+      <form onSubmit={handleSubmitDeposit} className="space-y-3 pt-2">
+        {/* If bKash, Nagad, or Custom: Require Sender Number */}
+        {selectedGateway !== 'binance' && (
+          <div>
+            <label className="block text-xs font-bold text-slate-300 mb-1">
+              যে নাম্বার থেকে টাকা পাঠিয়েছেন (Sender Number):
+            </label>
+            <input
+              type="text"
+              value={senderIdentifier}
+              onChange={(e) => setSenderIdentifier(e.target.value)}
+              placeholder="e.g. 017XXXXXXXX"
+              className="w-full bg-[#050912] border border-[#1a2842] rounded-xl p-3 text-xs text-white font-mono focus:outline-none focus:border-amber-400"
+              required
+            />
+          </div>
+        )}
+
+        <div>
+          <label className="block text-xs font-bold text-slate-300 mb-1">
+            {methodDetails.trxLabel}
+          </label>
+          <input
+            type="text"
+            value={transactionId}
+            onChange={(e) => setTransactionId(e.target.value)}
+            placeholder={methodDetails.placeholder}
+            className="w-full bg-[#050912] border border-[#1a2842] rounded-xl p-3 text-xs text-white font-mono uppercase focus:outline-none focus:border-amber-400"
+            required
+          />
+        </div>
+
+        {manualMessage && (
+          <div
+            className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
+              manualMessage.type === 'success'
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+            }`}
+          >
+            {manualMessage.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+            ) : (
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+            )}
+            <span>{manualMessage.text}</span>
+          </div>
+        )}
+
+        {/* 7. Confirm Button - Exact layout styling */}
+        <button
+          type="submit"
+          disabled={submittingManual}
+          className="w-full py-3 rounded-xl bg-[#141b27] hover:bg-amber-400 text-amber-400 hover:text-slate-950 border border-amber-500/40 font-black text-sm flex items-center justify-center gap-2 shadow-lg transition cursor-pointer disabled:opacity-50"
+        >
+          {submittingManual ? (
+            <RefreshCw className="w-4 h-4 animate-spin" />
+          ) : (
+            <CheckCircle2 className="w-4 h-4" />
+          )}
+          <span>কনফার্ম</span>
+        </button>
+      </form>
+    </div>
+  );
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-24 px-2 sm:px-4 w-full overflow-x-hidden animate-in fade-in duration-200">
@@ -471,20 +624,18 @@ export function DepositStorePage({
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-black">
               <Sparkles className="w-3.5 h-3.5 animate-pulse text-amber-400" />
               <span>ডিপোজিট স্টোর (Deposit Store)</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span className="text-[10px] text-emerald-400 font-bold">লাইভ ডিপোজিট সক্রিয়</span>
             </div>
 
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
-              ইনস্ট্যান্ট ওয়ালেট <span className="text-amber-400">টপ-আপ ও ডিপোজিট</span>
+              ওয়ালেট <span className="text-amber-400">টপ-আপ ও ডিপোজিট</span>
             </h1>
 
             <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
-              বাইনান্স (Binance Pay / USDT BEP-20) এর মাধ্যমে লাইভ অটো ডিপোজিট করুন অথবা বিকাশ, নগদ, রকেট ও কাস্টম মেথডে সহজেই ব্যালেন্স লোড করুন।
+              বিকাশ, নগদ, বাইন্যান্স (Binance Pay) বা কাস্টম মেথডে সহজেই ওয়ালেট রিচার্জ করুন।
             </p>
           </div>
 
-          {/* Current Balance Card with Live Sync Button */}
+          {/* Current Balance Card */}
           <div className="shrink-0 p-4 sm:p-5 rounded-2xl bg-[#0e172a]/90 border border-[#1e2d48] flex flex-col gap-2 min-w-[240px]">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -519,7 +670,7 @@ export function DepositStorePage({
         </div>
       </div>
 
-      {/* Navigation Tabs (Store, Instant Verify, History) */}
+      {/* Navigation Tabs (Store / History) */}
       <div className="flex items-center gap-2 bg-[#090f1d] p-1.5 rounded-2xl border border-[#1a263d]">
         <button
           type="button"
@@ -531,20 +682,7 @@ export function DepositStorePage({
           }`}
         >
           <Coins className="w-4 h-4" />
-          <span>টপ-আপ প্যাকেজ ও মেথড</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('verify')}
-          className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-            activeTab === 'verify'
-              ? 'bg-amber-400 text-slate-950 font-black shadow-md'
-              : 'text-slate-400 hover:text-white hover:bg-[#111c30]'
-          }`}
-        >
-          <Zap className="w-4 h-4 text-amber-500" />
-          <span>⚡ ইনস্ট্যান্ট ট্রানজেকশন ভেরিফাই</span>
+          <span>ডিপোজিট ও চেকআউট</span>
         </button>
 
         <button
@@ -681,565 +819,508 @@ export function DepositStorePage({
             </div>
           </div>
 
-          {/* Step 2: Payment Gateways Section */}
+          {/* Step 2: Payment Gateways Section (REFINED CLEAN CARD-BASED LAYOUT) */}
           <div className="p-4 sm:p-6 rounded-3xl bg-[#0a101f] border border-[#1b2940] space-y-5">
-            <div>
-              <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 text-xs flex items-center justify-center font-bold">2</span>
-                <span>ডিপোজিট মেথড নির্বাচন করুন (Select Method)</span>
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                বাইনান্স লাইভ অটো ডিপোজিট অথবা বিকাশ, নগদ, রকেট ও কাস্টম মেথড নির্বাচন করুন।
-              </p>
-            </div>
-
-            {/* Gateways Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {/* Binance */}
-              {paymentSettings.binanceEnabled !== false && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedGateway('binance')}
-                  className={`p-4 rounded-2xl border text-left cursor-pointer transition-all flex flex-col justify-between gap-3 ${
-                    selectedGateway === 'binance'
-                      ? 'bg-amber-500/20 border-amber-400 ring-2 ring-amber-400/40 shadow-xl scale-[1.02]'
-                      : 'bg-[#0e1628] border-[#1e2f4a] hover:border-amber-400/50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-black text-base border border-amber-500/40 shrink-0">
-                      ₮
-                    </div>
-                    <div>
-                      <span className="text-xs font-black text-white block">Binance Pay</span>
-                      <span className="text-[10px] text-amber-400 font-bold block flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        লাইভ অটো ডিপোজিট
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] text-slate-400">UID / Pay ID / BEP20</span>
-                </button>
-              )}
-
-              {/* bKash */}
-              {paymentSettings.bkashEnabled !== false && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedGateway('bkash')}
-                  className={`p-4 rounded-2xl border text-left cursor-pointer transition-all flex flex-col justify-between gap-3 ${
-                    selectedGateway === 'bkash'
-                      ? 'bg-pink-500/20 border-pink-500 ring-2 ring-pink-500/40 shadow-xl scale-[1.02]'
-                      : 'bg-[#0e1628] border-[#1e2f4a] hover:border-pink-500/50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    {paymentSettings.bkashQrUrl ? (
-                      <img src={paymentSettings.bkashQrUrl} alt="bKash" className="w-9 h-9 rounded-xl object-cover border border-pink-500/40 shrink-0" />
-                    ) : (
-                      <div className="w-9 h-9 rounded-xl bg-pink-500/20 text-pink-400 flex items-center justify-center font-black text-xs border border-pink-500/40 shrink-0">
-                        বিকাশ
-                      </div>
-                    )}
-                    <div>
-                      <span className="text-xs font-black text-white block">bKash (বিকাশ)</span>
-                      <span className="text-[10px] text-pink-400 font-bold block">Send Money</span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] text-slate-400">{paymentSettings.bkashNumber}</span>
-                </button>
-              )}
-
-              {/* Nagad */}
-              {paymentSettings.nagadEnabled !== false && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedGateway('nagad')}
-                  className={`p-4 rounded-2xl border text-left cursor-pointer transition-all flex flex-col justify-between gap-3 ${
-                    selectedGateway === 'nagad'
-                      ? 'bg-orange-500/20 border-orange-500 ring-2 ring-orange-500/40 shadow-xl scale-[1.02]'
-                      : 'bg-[#0e1628] border-[#1e2f4a] hover:border-orange-500/50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    {paymentSettings.nagadQrUrl ? (
-                      <img src={paymentSettings.nagadQrUrl} alt="Nagad" className="w-9 h-9 rounded-xl object-cover border border-orange-500/40 shrink-0" />
-                    ) : (
-                      <div className="w-9 h-9 rounded-xl bg-orange-500/20 text-orange-400 flex items-center justify-center font-black text-xs border border-orange-500/40 shrink-0">
-                        নগদ
-                      </div>
-                    )}
-                    <div>
-                      <span className="text-xs font-black text-white block">Nagad (নগদ)</span>
-                      <span className="text-[10px] text-orange-400 font-bold block">Send Money</span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] text-slate-400">{paymentSettings.nagadNumber}</span>
-                </button>
-              )}
-
-              {/* Rocket */}
-              {paymentSettings.rocketEnabled !== false && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedGateway('rocket')}
-                  className={`p-4 rounded-2xl border text-left cursor-pointer transition-all flex flex-col justify-between gap-3 ${
-                    selectedGateway === 'rocket'
-                      ? 'bg-purple-500/20 border-purple-500 ring-2 ring-purple-500/40 shadow-xl scale-[1.02]'
-                      : 'bg-[#0e1628] border-[#1e2f4a] hover:border-purple-500/50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    {paymentSettings.rocketQrUrl ? (
-                      <img src={paymentSettings.rocketQrUrl} alt="Rocket" className="w-9 h-9 rounded-xl object-cover border border-purple-500/40 shrink-0" />
-                    ) : (
-                      <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-black text-xs border border-purple-500/40 shrink-0">
-                        রকেট
-                      </div>
-                    )}
-                    <div>
-                      <span className="text-xs font-black text-white block">Rocket (রকেট)</span>
-                      <span className="text-[10px] text-purple-400 font-bold block">Send Money</span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] text-slate-400">{paymentSettings.rocketNumber}</span>
-                </button>
-              )}
-
-              {/* Custom Methods added from Admin Panel with direct pictures */}
-              {paymentSettings.customMethods?.filter((cm) => cm.enabled !== false).map((cm) => (
-                <button
-                  key={cm.id}
-                  type="button"
-                  onClick={() => setSelectedGateway(cm.id)}
-                  className={`p-4 rounded-2xl border text-left cursor-pointer transition-all flex flex-col justify-between gap-3 ${
-                    selectedGateway === cm.id
-                      ? 'bg-emerald-500/20 border-emerald-400 ring-2 ring-emerald-400/40 shadow-xl scale-[1.02]'
-                      : 'bg-[#0e1628] border-[#1e2f4a] hover:border-emerald-400/50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    {cm.imageUrl ? (
-                      <img src={cm.imageUrl} alt={cm.name} className="w-9 h-9 rounded-xl object-cover border border-emerald-400/40 shrink-0" />
-                    ) : (
-                      <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-xs border border-emerald-400/40 shrink-0">
-                        <CreditCard className="w-4 h-4" />
-                      </div>
-                    )}
-                    <div className="min-w-0">
-                      <span className="text-xs font-black text-white block truncate">{cm.name}</span>
-                      <span className="text-[10px] text-emerald-400 font-bold block truncate">কাস্টম মেথড</span>
-                    </div>
-                  </div>
-                  <span className="text-[10px] text-slate-400 truncate">{cm.account || 'Direct Pay'}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Gateway Details & Action Panel */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-[#070c17] border border-[#172338] space-y-4">
-              {/* Selected Amount Summary Pill */}
-              <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-[#0b1324] border border-[#1b2b45]">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-300">নির্বাচিত ডিপোজিট পরিমাণ:</span>
-                  <span className="text-sm font-black text-amber-400">${activeAmountUsd} USDT</span>
-                  <span className="text-xs font-bold text-slate-400">(= ৳{activeAmountBdt} BDT)</span>
-                </div>
-                {activeBonusUsd > 0 && (
-                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1">
-                    <Gift className="w-3 h-3" />
-                    <span>মোট ক্রেডিট হবে: ${(activeAmountUsd + activeBonusUsd).toFixed(2)} USDT</span>
-                  </span>
-                )}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 text-xs flex items-center justify-center font-bold">2</span>
+                  <span>ডিপোজিট মেথড নির্বাচন করুন (Payment Methods)</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  বিকাশ, নগদ বা বাইন্যান্সের কার্ড থেকে নম্বর কপি করে টাকা পাঠান এবং নিচে TrxID দিন।
+                </p>
               </div>
 
-              {/* DETAILS FOR BINANCE PAY */}
-              {selectedGateway === 'binance' && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Binance IDs & Instructions */}
-                    <div className="space-y-3">
-                      <div className="p-3.5 rounded-xl bg-[#0a1120] border border-[#1b2b48] space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-300">Binance Pay ID / UID:</span>
-                          <button
-                            type="button"
-                            onClick={() => handleCopy(paymentSettings.binancePayId || '922593999', 'payId')}
-                            className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition"
-                          >
-                            {copiedField === 'payId' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                            <span>{copiedField === 'payId' ? 'কপি হয়েছে' : 'কপি করুন'}</span>
-                          </button>
-                        </div>
-                        <div className="text-sm font-mono font-black text-amber-400 bg-[#060a12] p-2.5 rounded-lg border border-slate-800">
-                          {paymentSettings.binancePayId || paymentSettings.binanceUid || '922593999'}
-                        </div>
-                      </div>
+              <button
+                type="button"
+                onClick={() => setShowCheckoutModal(true)}
+                className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow-md transition cursor-pointer flex items-center gap-1.5 self-start sm:self-auto shrink-0"
+              >
+                <span>চেকআউট মোডাল খুলুন</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </button>
+            </div>
 
-                      {/* Binance BEP20 Address */}
-                      <div className="p-3.5 rounded-xl bg-[#0a1120] border border-[#1b2b48] space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-300">Binance USDT Address (BEP-20 / BSC):</span>
-                          <button
-                            type="button"
-                            onClick={() => handleCopy(paymentSettings.binanceBscAddress || '0xadf20566382613a481f39f62cd50b872314db1d3', 'bscAddr')}
-                            className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition"
-                          >
-                            {copiedField === 'bscAddr' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                            <span>{copiedField === 'bscAddr' ? 'কপি হয়েছে' : 'কপি করুন'}</span>
-                          </button>
-                        </div>
-                        <div className="text-[11px] font-mono font-black text-amber-300 bg-[#060a12] p-2 rounded-lg border border-slate-800 break-all">
-                          {paymentSettings.binanceBscAddress || '0xadf20566382613a481f39f62cd50b872314db1d3'}
-                        </div>
-                      </div>
+            {/* REFINED CARD-BASED GRID WITH ENTRY ANIMATIONS & HOVER EFFECTS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* 1. bKash Card */}
+              {paymentSettings.bkashEnabled !== false && (
+                <motion.div
+                  initial={{ opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1], delay: 0.04 }}
+                  whileHover={{ y: -4, transition: { duration: 0.18, ease: 'easeOut' } }}
+                  whileTap={{ scale: 0.985 }}
+                  onClick={() => setSelectedGateway('bkash')}
+                  className={`group relative p-5 rounded-3xl border text-left cursor-pointer transition-colors duration-200 flex flex-col justify-between gap-4 overflow-hidden ${
+                    selectedGateway === 'bkash'
+                      ? 'bg-gradient-to-b from-[#1c0e1e] to-[#0c060d] border-[#E2136E] ring-2 ring-[#E2136E]/40 shadow-2xl shadow-[#E2136E]/20 scale-[1.01]'
+                      : 'bg-[#080d1a] border-[#18253b] hover:border-[#E2136E]/70 hover:bg-[#0c1424] hover:shadow-xl hover:shadow-[#E2136E]/10'
+                  }`}
+                >
+                  {/* Subtle Brand Accent Radial Glow */}
+                  <div
+                    className={`absolute -top-12 -right-12 w-36 h-36 rounded-full blur-2xl pointer-events-none transition-opacity duration-300 ${
+                      selectedGateway === 'bkash'
+                        ? 'bg-[#E2136E]/25 opacity-100'
+                        : 'bg-[#E2136E]/15 opacity-0 group-hover:opacity-100'
+                    }`}
+                  />
 
-                      {/* Quick Direct Links */}
-                      <div className="flex flex-wrap items-center gap-2">
-                        <a
-                          href={`binance://payment/pay?merchantId=${paymentSettings.binancePayId || '922593999'}&amount=${activeAmountUsd}`}
-                          className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition"
-                        >
-                          <Smartphone className="w-3.5 h-3.5" />
-                          <span>বাইনান্স অ্যাপে ওপেন করুন</span>
-                        </a>
-
-                        <button
-                          type="button"
-                          onClick={handleCreateBinanceOrder}
-                          disabled={creatingOrder}
-                          className="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition"
-                        >
-                          {creatingOrder ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
-                          <span>⚡ লাইভ অটো-চেকার চালু করুন</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* QR Code & Live Status */}
-                    <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-[#090f1e] border border-[#1b2a45] text-center space-y-3">
-                      <div className="p-2 bg-white rounded-2xl shadow-lg border border-amber-400/40">
-                        <img
-                          src={
-                            paymentSettings.binanceQrUrl ||
-                            `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://app.binance.com/qr/dop?id=${paymentSettings.binancePayId || '922593999'}`
-                          }
-                          alt="Binance QR"
-                          className="w-36 h-36 object-contain"
-                        />
+                  {/* Card Header: Brand Image, Name, Badge & Radio */}
+                  <div className="flex items-start justify-between gap-3 relative z-10">
+                    <div className="flex items-center gap-3">
+                      <div className="group-hover:scale-105 transition-transform duration-200 shrink-0">
+                        {paymentSettings.bkashLogoUrl ? (
+                          <img src={paymentSettings.bkashLogoUrl} alt="bKash" className="w-12 h-12 rounded-2xl object-cover shadow-lg shadow-[#E2136E]/20" />
+                        ) : (
+                          <BkashLogo className="w-12 h-12" />
+                        )}
                       </div>
                       <div>
-                        <span className="text-xs font-black text-white block">স্ক্যান করে $ {activeAmountUsd} USDT সেন্ড করুন</span>
-                        <span className="text-[11px] text-slate-400 mt-0.5 block">
-                          বাইনান্স অ্যাপ দিয়ে কিউআর স্ক্যান করলেই সরাসরি ট্রান্সফার হবে
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-black text-white">bKash (বিকাশ)</h4>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E2136E]/20 text-[#ff4081] border border-[#E2136E]/30">
+                            Personal
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-0.5">Send Money (পার্সোনাল)</p>
                       </div>
+                    </div>
+
+                    <div className="shrink-0">
+                      {selectedGateway === 'bkash' ? (
+                        <motion.span
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          className="px-2.5 py-1 rounded-full bg-[#E2136E] text-white font-black text-[10px] flex items-center gap-1 shadow-md"
+                        >
+                          <Check className="w-3 h-3 stroke-[3]" />
+                          <span>নির্বাচিত</span>
+                        </motion.span>
+                      ) : (
+                        <span className="w-5 h-5 rounded-full border-2 border-slate-600 group-hover:border-[#E2136E]/60 transition-colors block" />
+                      )}
                     </div>
                   </div>
 
-                  {/* Real-time Order Monitoring Notification */}
-                  {binanceOrder && !isOrderPaid && (
-                    <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 animate-pulse">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-amber-300">
-                            লাইভ পেমেন্ট পর্যবেক্ষণ করা হচ্ছে (Order #{binanceOrder.merchantTradeNo})
-                          </p>
-                          <p className="text-[11px] text-slate-400">
-                            বাইনান্সে লেনদেন সম্পন্ন হওয়ামাত্রই সার্ভার স্বয়ংক্রিয়ভাবে শনাক্ত করে ওয়ালেটে ব্যালেন্স যোগ করবে।
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* DETAILS FOR BKASH / NAGAD / ROCKET / CUSTOM */}
-              {selectedGateway !== 'binance' && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-3">
-                      {/* Account Number Card */}
-                      <div className="p-3.5 rounded-xl bg-[#0a1120] border border-[#1b2b48] space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-300">
-                            {selectedGateway === 'bkash'
-                              ? 'bKash (বিকাশ) নাম্বার (Send Money):'
-                              : selectedGateway === 'nagad'
-                              ? 'Nagad (নগদ) নাম্বার (Send Money):'
-                              : selectedGateway === 'rocket'
-                              ? 'Rocket (রকেট) নাম্বার (Send Money):'
-                              : `${selectedCustom?.name || 'কাস্টম'} একাউন্ট তথ্য:`}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const num =
-                                selectedGateway === 'bkash'
-                                  ? paymentSettings.bkashNumber
-                                  : selectedGateway === 'nagad'
-                                  ? paymentSettings.nagadNumber
-                                  : selectedGateway === 'rocket'
-                                  ? paymentSettings.rocketNumber
-                                  : selectedCustom?.account || '';
-                              handleCopy(num, 'accNum');
-                            }}
-                            className="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition"
-                          >
-                            {copiedField === 'accNum' ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                            <span>{copiedField === 'accNum' ? 'কপি হয়েছে' : 'কপি করুন'}</span>
-                          </button>
-                        </div>
-
-                        <div className="text-base font-mono font-black text-amber-400 bg-[#060a12] p-2.5 rounded-lg border border-slate-800">
-                          {selectedGateway === 'bkash'
-                            ? paymentSettings.bkashNumber
-                            : selectedGateway === 'nagad'
-                            ? paymentSettings.nagadNumber
-                            : selectedGateway === 'rocket'
-                            ? paymentSettings.rocketNumber
-                            : selectedCustom?.account}
-                        </div>
-                      </div>
-
-                      {/* Instructions */}
-                      <div className="p-3 rounded-xl bg-[#090f1d] border border-slate-800 text-xs text-slate-300 leading-relaxed">
-                        <span className="font-bold text-amber-400 block mb-1">পেমেন্ট নির্দেশনা:</span>
-                        {selectedCustom?.instructions ||
-                          paymentSettings.instructionsBn ||
-                          'উপরের নাম্বারে উল্লেখিত পরিমাণ টাকা Send Money করুন। সফল হলে প্রাপ্ত Transaction ID (TrxID) এবং আপনার ফোন নাম্বার নিচে দিয়ে সাবমিট করুন।'}
-                      </div>
-                    </div>
-
-                    {/* Method Picture / QR Code from Admin */}
-                    <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-[#090f1e] border border-[#1b2a45] text-center space-y-3">
-                      {(selectedGateway === 'bkash' && paymentSettings.bkashQrUrl) ||
-                      (selectedGateway === 'nagad' && paymentSettings.nagadQrUrl) ||
-                      (selectedGateway === 'rocket' && paymentSettings.rocketQrUrl) ||
-                      (selectedCustom && selectedCustom.imageUrl) ? (
-                        <div
-                          onClick={() => {
-                            const img =
-                              selectedGateway === 'bkash'
-                                ? paymentSettings.bkashQrUrl
-                                : selectedGateway === 'nagad'
-                                ? paymentSettings.nagadQrUrl
-                                : selectedGateway === 'rocket'
-                                ? paymentSettings.rocketQrUrl
-                                : selectedCustom?.imageUrl;
-                            if (img) setPreviewImage(img);
-                          }}
-                          className="cursor-pointer group relative"
-                          title="বড় করে দেখতে ক্লিক করুন"
-                        >
-                          <img
-                            src={
-                              selectedGateway === 'bkash'
-                                ? paymentSettings.bkashQrUrl
-                                : selectedGateway === 'nagad'
-                                ? paymentSettings.nagadQrUrl
-                                : selectedGateway === 'rocket'
-                                ? paymentSettings.rocketQrUrl
-                                : selectedCustom?.imageUrl
-                            }
-                            alt="Payment QR"
-                            className="w-40 h-40 object-cover rounded-2xl border-2 border-amber-400/50 shadow-lg group-hover:scale-105 transition-transform"
-                          />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-2xl transition-opacity text-white text-xs font-bold">
-                            🔍 বড় করে দেখুন
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="w-36 h-36 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col items-center justify-center text-slate-500 p-3">
-                          <QrCode className="w-10 h-10 mb-2 opacity-50" />
-                          <span className="text-[11px]">কোনো কিউআর বা ছবি নেই</span>
-                          <span className="text-[9px] text-slate-600 mt-0.5">সরাসরি নাম্বারে সেন্ড মানি করুন</span>
-                        </div>
-                      )}
-                      <span className="text-xs font-bold text-slate-300">
-                        প্রদেয় পরিমাণ: <span className="text-emerald-400 font-black">৳{activeAmountBdt} BDT</span>
+                  {/* Account Number Strip with Dedicated Copy Button */}
+                  <div className="p-3.5 rounded-2xl bg-[#040811] border border-[#17243a] flex items-center justify-between gap-2 relative z-10">
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                        বিকাশ পার্সোনাল নম্বর
+                      </span>
+                      <span className="font-mono text-white font-black text-sm sm:text-base tracking-wider select-all block truncate">
+                        {paymentSettings.bkashNumber || '01614572747'}
                       </span>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopy(paymentSettings.bkashNumber || '01614572747', 'bkash_card');
+                      }}
+                      className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shrink-0 hover:scale-105 active:scale-95 ${
+                        copiedField === 'bkash_card'
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                          : 'bg-[#E2136E]/20 hover:bg-[#E2136E]/30 text-[#ff5c99] border border-[#E2136E]/40'
+                      }`}
+                    >
+                      {copiedField === 'bkash_card' ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>কপি হয়েছে</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>কপি নম্বর</span>
+                        </>
+                      )}
+                    </button>
                   </div>
-                </div>
+
+                  {/* Bottom Footer Info */}
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800/60 relative z-10">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-[#E2136E] animate-pulse" />
+                      <span>ম্যানুয়াল সিম ভেরিফিকেশন</span>
+                    </span>
+                    <span className="text-[#ff5c99] font-bold group-hover:translate-x-0.5 transition-transform">
+                      {selectedGateway === 'bkash' ? 'নিচে তথ্য দিন ↓' : 'সিলেক্ট করুন →'}
+                    </span>
+                  </div>
+                </motion.div>
               )}
 
-              {/* Transaction ID Submission Form (for All Gateways) */}
-              <form onSubmit={handleSubmitManual} className="pt-4 border-t border-[#172338] space-y-4">
-                <div className="flex items-center gap-2">
-                  <h4 className="text-xs font-black text-white uppercase tracking-wider">
-                    📝 ট্রানজেকশন তথ্য পূরণ করুন (Submit Transaction Details)
-                  </h4>
-                  {selectedGateway === 'binance' && (
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">
-                      ⚡ লাইভ অটো-ভেরিফাই সক্রিয়
-                    </span>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <label className="block text-slate-300 font-bold mb-1">
-                      {selectedGateway === 'binance' ? 'আপনার Binance Pay ID / UID:' : 'যে নাম্বার থেকে টাকা পাঠিয়েছেন (Sender Number):'}
-                    </label>
-                    <input
-                      type="text"
-                      value={senderIdentifier}
-                      onChange={(e) => setSenderIdentifier(e.target.value)}
-                      placeholder={selectedGateway === 'binance' ? 'e.g. 849201948' : 'e.g. 017XXXXXXXX'}
-                      className="w-full bg-[#050912] border border-[#1b2b48] rounded-xl p-2.5 text-white font-mono focus:outline-none focus:border-amber-400"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-300 font-bold mb-1">
-                      Transaction ID (TrxID):
-                    </label>
-                    <input
-                      type="text"
-                      value={transactionId}
-                      onChange={(e) => setTransactionId(e.target.value)}
-                      placeholder={selectedGateway === 'binance' ? 'e.g. 239049281 বা On-chain Hash' : 'e.g. BLX9827361'}
-                      className="w-full bg-[#050912] border border-[#1b2b48] rounded-xl p-2.5 text-white font-mono uppercase focus:outline-none focus:border-amber-400"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {manualMessage && (
+              {/* 2. Nagad Card */}
+              {paymentSettings.nagadEnabled !== false && (
+                <motion.div
+                  initial={{ opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1], delay: 0.08 }}
+                  whileHover={{ y: -4, transition: { duration: 0.18, ease: 'easeOut' } }}
+                  whileTap={{ scale: 0.985 }}
+                  onClick={() => setSelectedGateway('nagad')}
+                  className={`group relative p-5 rounded-3xl border text-left cursor-pointer transition-colors duration-200 flex flex-col justify-between gap-4 overflow-hidden ${
+                    selectedGateway === 'nagad'
+                      ? 'bg-gradient-to-b from-[#21110b] to-[#0d0704] border-[#F15A24] ring-2 ring-[#F15A24]/40 shadow-2xl shadow-[#F15A24]/20 scale-[1.01]'
+                      : 'bg-[#080d1a] border-[#18253b] hover:border-[#F15A24]/70 hover:bg-[#0c1424] hover:shadow-xl hover:shadow-[#F15A24]/10'
+                  }`}
+                >
+                  {/* Subtle Brand Accent Radial Glow */}
                   <div
-                    className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
-                      manualMessage.type === 'success'
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                        : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                    className={`absolute -top-12 -right-12 w-36 h-36 rounded-full blur-2xl pointer-events-none transition-opacity duration-300 ${
+                      selectedGateway === 'nagad'
+                        ? 'bg-[#F15A24]/25 opacity-100'
+                        : 'bg-[#F15A24]/15 opacity-0 group-hover:opacity-100'
+                    }`}
+                  />
+
+                  {/* Card Header: Brand Image, Name, Badge & Radio */}
+                  <div className="flex items-start justify-between gap-3 relative z-10">
+                    <div className="flex items-center gap-3">
+                      <div className="group-hover:scale-105 transition-transform duration-200 shrink-0">
+                        {paymentSettings.nagadLogoUrl ? (
+                          <img src={paymentSettings.nagadLogoUrl} alt="Nagad" className="w-12 h-12 rounded-2xl object-cover shadow-lg shadow-[#F15A24]/20" />
+                        ) : (
+                          <NagadLogo className="w-12 h-12" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-black text-white">Nagad (নগদ)</h4>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#F15A24]/20 text-orange-400 border border-[#F15A24]/30">
+                            Personal
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-0.5">Send Money (পার্সোনাল)</p>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0">
+                      {selectedGateway === 'nagad' ? (
+                        <motion.span
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          className="px-2.5 py-1 rounded-full bg-gradient-to-r from-[#D9381E] to-[#F15A24] text-white font-black text-[10px] flex items-center gap-1 shadow-md"
+                        >
+                          <Check className="w-3 h-3 stroke-[3]" />
+                          <span>নির্বাচিত</span>
+                        </motion.span>
+                      ) : (
+                        <span className="w-5 h-5 rounded-full border-2 border-slate-600 group-hover:border-[#F15A24]/60 transition-colors block" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Account Number Strip with Dedicated Copy Button */}
+                  <div className="p-3.5 rounded-2xl bg-[#040811] border border-[#17243a] flex items-center justify-between gap-2 relative z-10">
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                        নগদ পার্সোনাল নম্বর
+                      </span>
+                      <span className="font-mono text-white font-black text-sm sm:text-base tracking-wider select-all block truncate">
+                        {paymentSettings.nagadNumber || '01304104492'}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopy(paymentSettings.nagadNumber || '01304104492', 'nagad_card');
+                      }}
+                      className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shrink-0 hover:scale-105 active:scale-95 ${
+                        copiedField === 'nagad_card'
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                          : 'bg-[#F15A24]/20 hover:bg-[#F15A24]/30 text-orange-300 border border-[#F15A24]/40'
+                      }`}
+                    >
+                      {copiedField === 'nagad_card' ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>কপি হয়েছে</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>কপি নম্বর</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Bottom Footer Info */}
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800/60 relative z-10">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-[#F15A24] animate-pulse" />
+                      <span>ম্যানুয়াল সিম ভেরিফিকেশন</span>
+                    </span>
+                    <span className="text-orange-400 font-bold group-hover:translate-x-0.5 transition-transform">
+                      {selectedGateway === 'nagad' ? 'নিচে তথ্য দিন ↓' : 'সিলেক্ট করুন →'}
+                    </span>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* 3. Binance Pay Card */}
+              {paymentSettings.binanceEnabled !== false && (
+                <motion.div
+                  initial={{ opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
+                  whileHover={{ y: -4, transition: { duration: 0.18, ease: 'easeOut' } }}
+                  whileTap={{ scale: 0.985 }}
+                  onClick={() => setSelectedGateway('binance')}
+                  className={`group relative p-5 rounded-3xl border text-left cursor-pointer transition-colors duration-200 flex flex-col justify-between gap-4 overflow-hidden ${
+                    selectedGateway === 'binance'
+                      ? 'bg-gradient-to-b from-[#1f1b0a] to-[#0c0a04] border-[#F3BA2F] ring-2 ring-[#F3BA2F]/40 shadow-2xl shadow-[#F3BA2F]/20 scale-[1.01]'
+                      : 'bg-[#080d1a] border-[#18253b] hover:border-[#F3BA2F]/70 hover:bg-[#0c1424] hover:shadow-xl hover:shadow-[#F3BA2F]/10'
+                  }`}
+                >
+                  {/* Subtle Brand Accent Radial Glow */}
+                  <div
+                    className={`absolute -top-12 -right-12 w-36 h-36 rounded-full blur-2xl pointer-events-none transition-opacity duration-300 ${
+                      selectedGateway === 'binance'
+                        ? 'bg-[#F3BA2F]/25 opacity-100'
+                        : 'bg-[#F3BA2F]/15 opacity-0 group-hover:opacity-100'
+                    }`}
+                  />
+
+                  {/* Card Header: Brand Image, Name, Badge & Radio */}
+                  <div className="flex items-start justify-between gap-3 relative z-10">
+                    <div className="flex items-center gap-3">
+                      <div className="group-hover:scale-105 transition-transform duration-200 shrink-0">
+                        <BinanceLogo className="w-12 h-12" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-black text-white">Binance Pay</h4>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#F3BA2F]/20 text-amber-300 border border-[#F3BA2F]/30">
+                            USDT
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-0.5">Pay ID & QR Scanner</p>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0">
+                      {selectedGateway === 'binance' ? (
+                        <motion.span
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          className="px-2.5 py-1 rounded-full bg-[#F3BA2F] text-slate-950 font-black text-[10px] flex items-center gap-1 shadow-md"
+                        >
+                          <Check className="w-3 h-3 stroke-[3]" />
+                          <span>নির্বাচিত</span>
+                        </motion.span>
+                      ) : (
+                        <span className="w-5 h-5 rounded-full border-2 border-slate-600 group-hover:border-[#F3BA2F]/60 transition-colors block" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Account Number Strip with Dedicated Copy Button */}
+                  <div className="p-3.5 rounded-2xl bg-[#040811] border border-[#17243a] flex items-center justify-between gap-2 relative z-10">
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                        Binance Pay ID / UID
+                      </span>
+                      <span className="font-mono text-amber-400 font-black text-sm sm:text-base tracking-wider select-all block truncate">
+                        {paymentSettings.binancePayId || paymentSettings.binanceUid || '922593999'}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCopy(paymentSettings.binancePayId || paymentSettings.binanceUid || '922593999', 'binance_card');
+                      }}
+                      className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shrink-0 hover:scale-105 active:scale-95 ${
+                        copiedField === 'binance_card'
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                          : 'bg-[#F3BA2F]/20 hover:bg-[#F3BA2F]/30 text-amber-300 border border-[#F3BA2F]/40'
+                      }`}
+                    >
+                      {copiedField === 'binance_card' ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>কপি হয়েছে</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>কপি আইডি</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Bottom Footer Info */}
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800/60 relative z-10">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-[#F3BA2F] animate-pulse" />
+                      <span>QR স্ক্যানার ও Pay ID</span>
+                    </span>
+                    <span className="text-amber-400 font-bold group-hover:translate-x-0.5 transition-transform">
+                      {selectedGateway === 'binance' ? 'নিচে তথ্য দিন ↓' : 'সিলেক্ট করুন →'}
+                    </span>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* 4. Custom Methods (if any configured by Admin) */}
+              {paymentSettings.customMethods?.filter((cm) => cm.enabled !== false).map((cm, idx) => {
+                const isSelected = selectedGateway === cm.id;
+                return (
+                  <motion.div
+                    key={cm.id}
+                    initial={{ opacity: 0, y: 18 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1], delay: 0.16 + idx * 0.04 }}
+                    whileHover={{ y: -4, transition: { duration: 0.18, ease: 'easeOut' } }}
+                    whileTap={{ scale: 0.985 }}
+                    onClick={() => setSelectedGateway(cm.id)}
+                    className={`group relative p-5 rounded-3xl border text-left cursor-pointer transition-colors duration-200 flex flex-col justify-between gap-4 overflow-hidden ${
+                      isSelected
+                        ? 'bg-gradient-to-b from-[#0e1e18] to-[#040d09] border-emerald-400 ring-2 ring-emerald-400/40 shadow-2xl shadow-emerald-500/20 scale-[1.01]'
+                        : 'bg-[#080d1a] border-[#18253b] hover:border-emerald-400/70 hover:bg-[#0c1424] hover:shadow-xl hover:shadow-emerald-500/10'
                     }`}
                   >
-                    {manualMessage.type === 'success' ? (
-                      <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                    )}
-                    <span>{manualMessage.text}</span>
-                  </div>
-                )}
+                    {/* Subtle Brand Accent Radial Glow */}
+                    <div
+                      className={`absolute -top-12 -right-12 w-36 h-36 rounded-full blur-2xl pointer-events-none transition-opacity duration-300 ${
+                        isSelected
+                          ? 'bg-emerald-500/25 opacity-100'
+                          : 'bg-emerald-500/15 opacity-0 group-hover:opacity-100'
+                      }`}
+                    />
 
-                <div className="flex justify-end">
-                  <button
-                    type="submit"
-                    disabled={submittingManual}
-                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 flex items-center gap-2 cursor-pointer transition disabled:opacity-50"
-                  >
-                    {submittingManual ? (
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <CheckCircle2 className="w-4 h-4" />
-                    )}
-                    <span>ডিপোজিট সাবমিট করুন (Submit Deposit)</span>
-                  </button>
-                </div>
-              </form>
+                    {/* Card Header */}
+                    <div className="flex items-start justify-between gap-3 relative z-10">
+                      <div className="flex items-center gap-3">
+                        <div className="group-hover:scale-105 transition-transform duration-200 shrink-0">
+                          {cm.imageUrl ? (
+                            <img
+                              src={cm.imageUrl}
+                              alt={cm.name}
+                              className="w-12 h-12 rounded-2xl object-cover border border-emerald-400/40 shadow-md"
+                            />
+                          ) : (
+                            <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-sm border border-emerald-500/40 shadow-md">
+                              <CreditCard className="w-6 h-6" />
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-sm font-black text-white">{cm.name}</h4>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                              Custom
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-400 mt-0.5">কাস্টম পেমেন্ট মেথড</p>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0">
+                        {isSelected ? (
+                          <motion.span
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="px-2.5 py-1 rounded-full bg-emerald-500 text-slate-950 font-black text-[10px] flex items-center gap-1 shadow-md"
+                          >
+                            <Check className="w-3 h-3 stroke-[3]" />
+                            <span>নির্বাচিত</span>
+                          </motion.span>
+                        ) : (
+                          <span className="w-5 h-5 rounded-full border-2 border-slate-600 group-hover:border-emerald-400/60 transition-colors block" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Account Strip with Dedicated Copy Button */}
+                    <div className="p-3.5 rounded-2xl bg-[#040811] border border-[#17243a] flex items-center justify-between gap-2 relative z-10">
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                          একাউন্ট নম্বর / তথ্য
+                        </span>
+                        <span className="font-mono text-emerald-300 font-black text-sm sm:text-base tracking-wider select-all block truncate">
+                          {cm.account || 'Direct Pay'}
+                        </span>
+                      </div>
+
+                      {cm.account && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopy(cm.account, `custom_${cm.id}`);
+                          }}
+                          className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shrink-0 hover:scale-105 active:scale-95 ${
+                            copiedField === `custom_${cm.id}`
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                              : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
+                          }`}
+                        >
+                          {copiedField === `custom_${cm.id}` ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              <span>কপি হয়েছে</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5" />
+                              <span>কপি নম্বর</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Bottom Footer Info */}
+                    <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800/60 relative z-10">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <span>{cm.instructions || 'সরাসরি সেন্ড মানি করুন'}</span>
+                      </span>
+                      <span className="text-emerald-400 font-bold group-hover:translate-x-0.5 transition-transform">
+                        {isSelected ? 'নিচে তথ্য দিন ↓' : 'সিলেক্ট করুন →'}
+                      </span>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            {/* Selected Amount Notice Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-2 p-3.5 rounded-2xl bg-[#070c17] border border-[#172338]">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-300 font-semibold">নির্বাচিত ডিপোজিট পরিমাণ:</span>
+                <span className="text-sm font-black text-amber-400 font-mono">${activeAmountUsd} USDT</span>
+                <span className="text-xs font-bold text-emerald-400">(= ৳{activeAmountBdt} BDT)</span>
+              </div>
+              {activeBonusUsd > 0 && (
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1">
+                  <Gift className="w-3 h-3" />
+                  <span>মোট ক্রেডিট হবে: ${(activeAmountUsd + activeBonusUsd).toFixed(2)} USDT</span>
+                </span>
+              )}
+            </div>
+
+            {/* In-page Direct Checkout Card (Exact Screenshot Layout) */}
+            <div className="mt-4">
+              {renderCheckoutCard(false)}
             </div>
           </div>
         </div>
       )}
 
-      {/* TAB 2: INSTANT TRANSACTION VERIFICATION TOOL */}
-      {activeTab === 'verify' && (
-        <div className="p-5 sm:p-7 rounded-3xl bg-[#0a101f] border border-[#1b2940] space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/40 shrink-0">
-              <Zap className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-lg sm:text-xl font-black text-white">
-                স্বয়ংক্রিয় ট্রানজেকশন ভেরিফিকেশন (Instant Self-Verification)
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                ইতিমধ্যে আমাদের বাইন্যান্স একাউন্টে ডিপোজিট করেছেন? আপনার Transaction ID এখানে দিলে সার্ভার সরাসরি বাইন্যান্স যাচাই করে সাথে সাথে আপনার ওয়ালেটে ব্যালেন্স জমা করে দেবে!
-              </p>
-            </div>
-          </div>
-
-          <form onSubmit={handleInstantVerify} className="p-4 sm:p-5 rounded-2xl bg-[#060a13] border border-[#192740] space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-200 mb-1.5">
-                বাইনান্স Transaction ID (বা Order ID / Pay ID):
-              </label>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <input
-                  type="text"
-                  value={verifyTrxId}
-                  onChange={(e) => setVerifyTrxId(e.target.value)}
-                  placeholder="যেমন: P_A283918239 বা txId"
-                  className="flex-1 bg-[#0b1324] border border-[#1e304f] rounded-xl p-3 text-xs text-white font-mono uppercase focus:outline-none focus:border-amber-400"
-                  required
-                />
-                <button
-                  type="submit"
-                  disabled={verifyingTrx}
-                  className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md transition disabled:opacity-50"
-                >
-                  {verifyingTrx ? (
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Zap className="w-4 h-4" />
-                  )}
-                  <span>ভেরিফাই ও ব্যালেন্স জমা করুন</span>
-                </button>
-              </div>
-              <p className="text-[11px] text-slate-500 mt-2">
-                * টিপস: বাইন্যান্স অ্যাপের History বা Pay &gt; Transactions সেকশন থেকে Transaction ID কপি করে পেস্ট করুন।
-              </p>
-            </div>
-
-            {verifyResult && (
-              <div
-                className={`p-3.5 rounded-xl text-xs font-bold flex items-center gap-2.5 ${
-                  verifyResult.success
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                    : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                }`}
-              >
-                {verifyResult.success ? (
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-                ) : (
-                  <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
-                )}
-                <span>{verifyResult.message}</span>
-              </div>
-            )}
-          </form>
-
-          {/* Quick FAQ info */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-            <div className="p-3.5 rounded-xl bg-[#090f1e] border border-slate-800 space-y-1">
-              <span className="font-bold text-amber-400 block">⚡ তাৎক্ষণিক জমা</span>
-              <p className="text-slate-400 text-[11px]">
-                বাইনান্স পেমেন্ট এপিআই সরাসরি যুক্ত থাকায় কোনো এডমিন অনুমোদন ছাড়াই ব্যালেন্স ক্রেডিট হয়।
-              </p>
-            </div>
-            <div className="p-3.5 rounded-xl bg-[#090f1e] border border-slate-800 space-y-1">
-              <span className="font-bold text-amber-400 block">🔒 সুরক্ষিত ও নিরাপদ</span>
-              <p className="text-slate-400 text-[11px]">
-                প্রতিটি ট্রানজেকশন ইউনিকভাবে যাচাই করা হয়, ডাবল-স্পেন্ড বা জালিয়াতি প্রতিরোধ সম্পূর্ণ স্বয়ংক্রিয়।
-              </p>
-            </div>
-            <div className="p-3.5 rounded-xl bg-[#090f1e] border border-slate-800 space-y-1">
-              <span className="font-bold text-amber-400 block">📞 সাহায্য প্রয়োজন?</span>
-              <p className="text-slate-400 text-[11px]">
-                কোনো কারণে ট্রানজেকশন না পেলে আমাদের ২৪/৭ সাপোর্ট সেন্টারে যোগাযোগ করুন।
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 3: DEPOSIT HISTORY */}
+      {/* TAB 2: DEPOSIT HISTORY */}
       {activeTab === 'history' && (
         <div className="p-4 sm:p-6 rounded-3xl bg-[#0a101f] border border-[#1b2940] space-y-4">
           <div className="flex items-center justify-between">
@@ -1263,7 +1344,7 @@ export function DepositStorePage({
 
           {myDeposits.length === 0 ? (
             <div className="py-12 text-center text-xs text-slate-500 border border-dashed border-[#1b2b45] rounded-2xl">
-              এখনও কোনো ডিপোজিট হিস্ট্রি নেই। উপরে প্যাকেজ সিলেক্ট করে প্রথম ডিপোজিট করুন!
+              এখনও কোনো ডিপোজিট হিস্ট্রি নেই। উপরে প্যাকেজ সিলেক্ট করে ডিপোজিট করুন!
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -1326,66 +1407,86 @@ export function DepositStorePage({
         </div>
       )}
 
-      {/* Large Image Preview Modal */}
+      {/* POPUP CHECKOUT MODAL (Matching Screenshot) */}
       <AnimatePresence>
-        {previewImage && (
+        {showCheckoutModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setPreviewImage(null)}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+            onClick={() => setShowCheckoutModal(false)}
           >
-            <div className="relative max-w-sm w-full bg-[#0a101f] border border-amber-500/40 p-4 rounded-3xl shadow-2xl" onClick={(e) => e.stopPropagation()}>
-              <button
-                type="button"
-                onClick={() => setPreviewImage(null)}
-                className="absolute top-3 right-3 p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-              <img src={previewImage} alt="Payment Method" className="w-full h-auto rounded-2xl object-contain max-h-[70vh]" />
-              <div className="text-center mt-3">
-                <span className="text-xs font-bold text-amber-400">পেমেন্ট কিউআর কোড / ছবি</span>
-              </div>
-            </div>
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-lg my-auto"
+            >
+              {renderCheckoutCard(true)}
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Celebration Modal on Successful Deposit */}
+      {/* POPUP SUCCESS CONFIRMATION RECEIPT MODAL */}
       <AnimatePresence>
-        {showCelebration && (
+        {showSuccessModal && submittedReceipt && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
           >
-            <div className="max-w-md w-full bg-gradient-to-b from-[#0e1b33] to-[#070b13] border-2 border-amber-400 p-6 rounded-3xl shadow-2xl text-center space-y-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="max-w-md w-full bg-gradient-to-b from-[#0c1629] to-[#060a12] border-2 border-amber-400 p-6 sm:p-7 rounded-3xl shadow-2xl text-center space-y-4"
+            >
               <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-400 to-emerald-400 text-slate-950 flex items-center justify-center mx-auto shadow-xl text-3xl font-black">
                 🎉
               </div>
 
               <div className="space-y-1">
-                <h3 className="text-xl font-black text-white">ডিপোজিট সফল হয়েছে!</h3>
+                <h3 className="text-xl font-black text-white">ডিপোজিট রিকোয়েস্ট সফলভাবে জমা হয়েছে!</h3>
                 <p className="text-xs text-emerald-400 font-bold">
-                  অভিনন্দন! আপনার ওয়ালেটে ${creditedAmount} USDT জমা হয়েছে।
+                  আপনার ডিপোজিটটি এডমিন প্যানেলে পর্যালোচনার জন্য পাঠানো হয়েছে।
                 </p>
               </div>
 
-              <div className="p-3 rounded-xl bg-[#060a12] border border-slate-800 text-xs font-bold text-slate-300">
-                নতুন ব্যালেন্স: <span className="text-amber-400 text-sm font-black">${Number(user?.balanceUsd || 0).toFixed(2)} USDT</span>
+              <div className="p-4 rounded-2xl bg-[#060a14] border border-[#17253d] text-left text-xs space-y-2 font-mono">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span>অর্ডার নম্বর:</span>
+                  <span className="text-white font-bold">#{submittedReceipt.orderId}</span>
+                </div>
+                <div className="flex items-center justify-between text-slate-400">
+                  <span>পেমেন্ট মেথড:</span>
+                  <span className="text-amber-400 font-bold">{submittedReceipt.method}</span>
+                </div>
+                <div className="flex items-center justify-between text-slate-400">
+                  <span>ডিপোজিট পরিমাণ:</span>
+                  <span className="text-emerald-400 font-bold">${submittedReceipt.amount} USDT</span>
+                </div>
+                <div className="flex items-center justify-between text-slate-400">
+                  <span>TrxID / Order ID:</span>
+                  <span className="text-amber-300 font-bold break-all">{submittedReceipt.trxId}</span>
+                </div>
               </div>
+
+              <p className="text-[11px] text-slate-400">
+                এডমিন ভেরিফাই করে অনুমোদন করলেই ব্যালেন্স স্বয়ংক্রিয়ভাবে আপনার ওয়ালেটে যুক্ত হবে এবং হিস্ট্রিতে দেখতে পাবেন।
+              </p>
 
               <button
                 type="button"
-                onClick={() => setShowCelebration(false)}
+                onClick={() => setShowSuccessModal(false)}
                 className="w-full py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow-lg cursor-pointer transition"
               >
                 ঠিক আছে, ধন্যবাদ
               </button>
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

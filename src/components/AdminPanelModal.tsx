@@ -3,17 +3,14 @@ import {
   X, ShieldCheck, Users, CheckCircle2, XCircle, Clock, Search,
   RefreshCw, Bot, CreditCard, DollarSign, Settings, AlertTriangle,
   Play, Square, RotateCw, Trash2, Check, Copy, ExternalLink, ShieldAlert,
-  Plus, Wallet, ArrowRight, Link, ShoppingBag, Sparkles, Folder, Headphones, BellRing,
-  Mail, ArrowUp, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, BarChart3, Layers, Sliders,
+  Plus, Wallet, ArrowRight, Link, Sparkles, Headphones, BellRing,
+  ArrowUp, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, BarChart3, Layers, Sliders,
   Upload, Image as ImageIcon, Loader2
 } from 'lucide-react';
 import { PlanRequest, AuthUser, HostedBot, PaymentSettings, HostingPlan, FreeTrialSettings, CustomDepositMethod } from '../types';
 import { AdminBannersManager } from './admin/AdminBannersManager';
 import { AdminSupportManager } from './admin/AdminSupportManager';
 import { AdminNoticesManager } from './admin/AdminNoticesManager';
-import { AdminSmtpManager } from './admin/AdminSmtpManager';
-import { AdminStoreManager } from './admin/AdminStoreManager';
-import { AdminCategoriesManager } from './admin/AdminCategoriesManager';
 import { AdminSiteSettingsManager } from './admin/AdminSiteSettingsManager';
 
 interface AdminPanelModalProps {
@@ -25,7 +22,59 @@ interface AdminPanelModalProps {
   onPlansUpdated?: () => void;
 }
 
-export type AdminTabType = 'requests' | 'users' | 'pricing' | 'store' | 'categories' | 'banners' | 'notices' | 'support' | 'payments' | 'bots' | 'smtp' | 'site';
+export type AdminTabType = 'requests' | 'users' | 'pricing' | 'banners' | 'notices' | 'support' | 'payments' | 'bots' | 'site';
+
+export const PAYMENT_ICON_PRESETS = [
+  {
+    id: 'bkash',
+    name: 'bKash (বিকাশ)',
+    suggestedName: 'bKash (বিকাশ) Personal',
+    color: '#E2136E',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%23E2136E"/><polygon points="50,15 85,38 72,65 50,45" fill="white" opacity="0.95"/><polygon points="15,48 50,15 50,45 32,68" fill="white" opacity="0.9"/><polygon points="50,45 72,65 50,85" fill="white" opacity="0.8"/><polygon points="32,68 50,45 50,85" fill="white" opacity="0.75"/><polygon points="50,15 62,5 72,25" fill="white" opacity="0.95"/></svg>'
+  },
+  {
+    id: 'nagad',
+    name: 'Nagad (নগদ)',
+    suggestedName: 'Nagad (নগদ) Personal',
+    color: '#F15A24',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%23F15A24"/><path d="M50 10C36 28 28 44 28 60C28 75 39 88 54 88C69 88 80 75 75 56C73 46 64 39 64 39C64 39 68 47 64 56C60 64 49 65 45 56C41 46 47 35 50 10Z" fill="white"/><circle cx="53" cy="62" r="7" fill="%23F7931E" opacity="0.9"/></svg>'
+  },
+  {
+    id: 'upay',
+    name: 'Upay (উপায়)',
+    suggestedName: 'Upay (উপায়) Personal',
+    color: '#0B549E',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%230B549E"/><text x="50" y="62" font-family="sans-serif" font-size="34" font-weight="900" fill="%23FFD100" text-anchor="middle">upay</text></svg>'
+  },
+  {
+    id: 'rocket',
+    name: 'Rocket (রকেট)',
+    suggestedName: 'DBBL Rocket (রকেট)',
+    color: '#8C3494',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%238C3494"/><polygon points="50,15 65,55 50,48 35,55" fill="white"/><polygon points="50,48 60,75 50,68 40,75" fill="%23FFD100"/><circle cx="50" cy="35" r="5" fill="%238C3494"/></svg>'
+  },
+  {
+    id: 'binance',
+    name: 'Binance Pay',
+    suggestedName: 'Binance Pay / USDT',
+    color: '#F3BA2F',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%23F3BA2F"/><polygon points="50,16 62,28 50,40 38,28" fill="%231E2329"/><polygon points="76,40 88,52 76,64 64,52" fill="%231E2329"/><polygon points="24,40 36,52 24,64 12,52" fill="%231E2329"/><polygon points="50,64 62,76 50,88 38,76" fill="%231E2329"/><polygon points="50,46 56,52 50,58 44,52" fill="%231E2329"/></svg>'
+  },
+  {
+    id: 'bank',
+    name: 'Bank / Card',
+    suggestedName: 'Bank Transfer / Card',
+    color: '#3B82F6',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%230F172A"/><rect x="18" y="28" width="64" height="44" rx="8" fill="%233B82F6"/><rect x="18" y="38" width="64" height="10" fill="%231E293B"/><circle cx="32" cy="58" r="5" fill="%23EF4444"/><circle cx="40" cy="58" r="5" fill="%23F59E0B" fill-opacity="0.8"/></svg>'
+  },
+  {
+    id: 'cash',
+    name: 'Cash / Agent',
+    suggestedName: 'Cash / Agent Pay',
+    color: '#10B981',
+    url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="%23059669"/><rect x="22" y="30" width="56" height="40" rx="6" fill="%2310B981" stroke="white" stroke-width="2"/><circle cx="50" cy="50" r="12" fill="white" fill-opacity="0.25"/><text x="50" y="56" font-family="sans-serif" font-size="20" font-weight="900" fill="white" text-anchor="middle">৳</text></svg>'
+  }
+];
 
 export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   isOpen,
@@ -54,7 +103,6 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   const [paymentSettings, setPaymentSettings] = useState<PaymentSettings>({
     bkashNumber: '',
     nagadNumber: '',
-    rocketNumber: '',
     binanceId: '',
     binanceUid: '',
     binancePayId: '',
@@ -662,8 +710,8 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                 </h3>
                 <p className="text-[9px] sm:text-xs text-slate-400 truncate max-w-[200px] sm:max-w-none">
                   {lang === 'bn'
-                    ? 'অনুমোদন, স্টোর ফাইল, ক্যাটাগরি, ব্যানার, নোটিশ ও ইউজার কন্ট্রোল'
-                    : 'Approve deposits, manage packages, store, banners & users'}
+                    ? 'অনুমোদন, প্যাকেজ, ব্যানার, নোটিশ ও ইউজার কন্ট্রোল'
+                    : 'Approve deposits, manage packages, banners & users'}
                 </p>
               </div>
             </div>
@@ -805,14 +853,11 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                 { id: 'requests' as AdminTabType, labelBn: 'অনুরোধ ও ডিপোজিট', labelEn: 'Requests & Deposits', icon: Clock, iconColor: 'text-sky-400', badge: overview?.pendingRequestsCount },
                 { id: 'users' as AdminTabType, labelBn: 'ইউজার ও ওয়ালেট', labelEn: 'Users & Wallets', icon: Users, iconColor: 'text-indigo-400' },
                 { id: 'pricing' as AdminTabType, labelBn: 'প্যাকেজ ও প্রাইসিং', labelEn: 'Packages & Pricing', icon: DollarSign, iconColor: 'text-amber-400' },
-                { id: 'store' as AdminTabType, labelBn: 'স্টোর ও ফাইলসমূহ', labelEn: 'Store & Files', icon: ShoppingBag, iconColor: 'text-emerald-400' },
-                { id: 'categories' as AdminTabType, labelBn: 'ক্যাটাগরি সমূহ', labelEn: 'Categories', icon: Folder, iconColor: 'text-yellow-400' },
                 { id: 'banners' as AdminTabType, labelBn: 'ব্যানার স্লাইডার', labelEn: 'Banners', icon: Sparkles, iconColor: 'text-pink-400' },
                 { id: 'notices' as AdminTabType, labelBn: 'জরুরি নোটিশ', labelEn: 'Notices', icon: BellRing, iconColor: 'text-teal-400' },
                 { id: 'support' as AdminTabType, labelBn: 'সাপোর্ট ইনবক্স', labelEn: 'Support Inbox', icon: Headphones, iconColor: 'text-cyan-400' },
                 { id: 'payments' as AdminTabType, labelBn: 'পেমেন্ট নাম্বার', labelEn: 'Payment Numbers', icon: CreditCard, iconColor: 'text-purple-400' },
                 { id: 'bots' as AdminTabType, labelBn: 'সকল বট নিয়ন্ত্রণ', labelEn: 'All Bots Control', icon: Bot, iconColor: 'text-blue-400' },
-                { id: 'smtp' as AdminTabType, labelBn: 'SMTP সেটিংস', labelEn: 'SMTP Email', icon: Mail, iconColor: 'text-orange-400' },
                 { id: 'site' as AdminTabType, labelBn: 'সাইট লোগো ও নাম', labelEn: 'Site Logo & Branding', icon: Sliders, iconColor: 'text-amber-400' },
               ].map((tab) => {
                 const IconComp = tab.icon;
@@ -1729,43 +1774,54 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                   type="text"
                   value={paymentSettings.bkashNumber}
                   onChange={(e) => setPaymentSettings({ ...paymentSettings, bkashNumber: e.target.value })}
-                  placeholder="01711223344 (Send Money / Merchant)"
-                  className="w-full bg-[#05080f] border border-[#1f2d48] rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-pink-500"
+                  placeholder="01614572747 (Send Money Personal)"
+                  className="w-full bg-[#05080f] border border-[#1f2d48] rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-pink-500 font-mono"
                 />
-                <div className="flex items-center gap-2 pt-1">
-                  {paymentSettings.bkashQrUrl ? (
-                    <div className="flex items-center gap-2 flex-1 min-w-0 bg-[#0d1524] p-1.5 rounded-lg border border-[#1f2d48]">
-                      <img src={paymentSettings.bkashQrUrl} alt="bKash QR" className="w-8 h-8 rounded object-cover border border-[#2b3d60]" />
-                      <span className="text-[10px] text-slate-400 truncate flex-1">QR কোড যুক্ত আছে</span>
+
+                {/* bKash Custom Logo / Icon */}
+                <div className="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded-xl bg-[#050912] border border-[#141f32]">
+                  <div className="flex items-center gap-2">
+                    {paymentSettings.bkashLogoUrl ? (
+                      <img src={paymentSettings.bkashLogoUrl} alt="bKash" className="w-8 h-8 rounded-lg object-contain bg-black/40 border border-pink-500/30 p-0.5" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-lg bg-[#E2136E]/20 text-pink-400 border border-[#E2136E]/40 flex items-center justify-center font-bold text-[9px]">
+                        বিকাশ
+                      </div>
+                    )}
+                    <div>
+                      <div className="text-[11px] font-bold text-slate-200">
+                        লোগো / আইকন (Optional Logo)
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        {paymentSettings.bkashLogoUrl ? 'কাস্টম লোগো সক্রিয়' : 'ডিফল্ট bKash লোগো'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    {paymentSettings.bkashLogoUrl && (
                       <button
                         type="button"
-                        onClick={() => setPaymentSettings({ ...paymentSettings, bkashQrUrl: '' })}
-                        className="text-rose-400 hover:text-rose-300 p-1 cursor-pointer"
-                        title="রিমুভ করুন"
+                        onClick={() => setPaymentSettings({ ...paymentSettings, bkashLogoUrl: '' })}
+                        className="px-2 py-1 text-[10px] font-bold rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 cursor-pointer"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        রিমুভ
                       </button>
-                    </div>
-                  ) : (
-                    <span className="text-[10px] text-slate-500 flex-1">QR বা পিকচার নেই</span>
-                  )}
-                  <label className="px-2.5 py-1.5 rounded-lg bg-pink-500/20 hover:bg-pink-500/30 text-pink-300 border border-pink-500/30 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition shrink-0">
-                    {uploadingQrField === 'bkash' ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <Upload className="w-3 h-3" />
                     )}
-                    <span>{paymentSettings.bkashQrUrl ? 'পরিবর্তন' : 'পিকচার আপলোড'}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) handleUploadPaymentImage(f, 'bkash', (url) => setPaymentSettings((prev) => ({ ...prev, bkashQrUrl: url })));
-                      }}
-                    />
-                  </label>
+                    <label className="px-2.5 py-1.5 rounded-xl bg-pink-600 hover:bg-pink-500 text-white font-bold text-[10px] flex items-center gap-1 cursor-pointer transition">
+                      {uploadingQrField === 'bkash_logo' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                      <span>{paymentSettings.bkashLogoUrl ? 'পরিবর্তন' : '📷 লোগো আপলোড'}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) handleUploadPaymentImage(f, 'bkash_logo', (url) => setPaymentSettings((prev) => ({ ...prev, bkashLogoUrl: url })));
+                        }}
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -1789,103 +1845,54 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                   type="text"
                   value={paymentSettings.nagadNumber}
                   onChange={(e) => setPaymentSettings({ ...paymentSettings, nagadNumber: e.target.value })}
-                  placeholder="01811223344 (Send Money / Merchant)"
-                  className="w-full bg-[#05080f] border border-[#1f2d48] rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-orange-500"
+                  placeholder="01304104492 (Send Money Personal)"
+                  className="w-full bg-[#05080f] border border-[#1f2d48] rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-orange-500 font-mono"
                 />
-                <div className="flex items-center gap-2 pt-1">
-                  {paymentSettings.nagadQrUrl ? (
-                    <div className="flex items-center gap-2 flex-1 min-w-0 bg-[#0d1524] p-1.5 rounded-lg border border-[#1f2d48]">
-                      <img src={paymentSettings.nagadQrUrl} alt="Nagad QR" className="w-8 h-8 rounded object-cover border border-[#2b3d60]" />
-                      <span className="text-[10px] text-slate-400 truncate flex-1">QR কোড যুক্ত আছে</span>
-                      <button
-                        type="button"
-                        onClick={() => setPaymentSettings({ ...paymentSettings, nagadQrUrl: '' })}
-                        className="text-rose-400 hover:text-rose-300 p-1 cursor-pointer"
-                        title="রিমুভ করুন"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="text-[10px] text-slate-500 flex-1">QR বা পিকচার নেই</span>
-                  )}
-                  <label className="px-2.5 py-1.5 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 border border-orange-500/30 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition shrink-0">
-                    {uploadingQrField === 'nagad' ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <Upload className="w-3 h-3" />
-                    )}
-                    <span>{paymentSettings.nagadQrUrl ? 'পরিবর্তন' : 'পিকচার আপলোড'}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) handleUploadPaymentImage(f, 'nagad', (url) => setPaymentSettings((prev) => ({ ...prev, nagadQrUrl: url })));
-                      }}
-                    />
-                  </label>
-                </div>
-              </div>
 
-              {/* Rocket */}
-              <div className="p-3 rounded-xl bg-[#090e18] border border-[#1f2d48] space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <label className="font-bold text-purple-400 flex items-center gap-1.5">
-                    <span>Rocket (রকেট) একাউন্ট:</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={paymentSettings.rocketEnabled !== false}
-                      onChange={(e) => setPaymentSettings({ ...paymentSettings, rocketEnabled: e.target.checked })}
-                      className="accent-purple-500 rounded"
-                    />
-                    <span>সক্রিয়</span>
-                  </label>
-                </div>
-                <input
-                  type="text"
-                  value={paymentSettings.rocketNumber}
-                  onChange={(e) => setPaymentSettings({ ...paymentSettings, rocketNumber: e.target.value })}
-                  placeholder="01911223344 (Send Money)"
-                  className="w-full bg-[#05080f] border border-[#1f2d48] rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-purple-500"
-                />
-                <div className="flex items-center gap-2 pt-1">
-                  {paymentSettings.rocketQrUrl ? (
-                    <div className="flex items-center gap-2 flex-1 min-w-0 bg-[#0d1524] p-1.5 rounded-lg border border-[#1f2d48]">
-                      <img src={paymentSettings.rocketQrUrl} alt="Rocket QR" className="w-8 h-8 rounded object-cover border border-[#2b3d60]" />
-                      <span className="text-[10px] text-slate-400 truncate flex-1">QR কোড যুক্ত আছে</span>
+                {/* Nagad Custom Logo / Icon */}
+                <div className="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded-xl bg-[#050912] border border-[#141f32]">
+                  <div className="flex items-center gap-2">
+                    {paymentSettings.nagadLogoUrl ? (
+                      <img src={paymentSettings.nagadLogoUrl} alt="Nagad" className="w-8 h-8 rounded-lg object-contain bg-black/40 border border-orange-500/30 p-0.5" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-lg bg-[#F15A24]/20 text-orange-400 border border-[#F15A24]/40 flex items-center justify-center font-bold text-[9px]">
+                        নগদ
+                      </div>
+                    )}
+                    <div>
+                      <div className="text-[11px] font-bold text-slate-200">
+                        লোগো / আইকন (Optional Logo)
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        {paymentSettings.nagadLogoUrl ? 'কাস্টম লোগো সক্রিয়' : 'ডিফল্ট Nagad লোগো'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    {paymentSettings.nagadLogoUrl && (
                       <button
                         type="button"
-                        onClick={() => setPaymentSettings({ ...paymentSettings, rocketQrUrl: '' })}
-                        className="text-rose-400 hover:text-rose-300 p-1 cursor-pointer"
-                        title="রিমুভ করুন"
+                        onClick={() => setPaymentSettings({ ...paymentSettings, nagadLogoUrl: '' })}
+                        className="px-2 py-1 text-[10px] font-bold rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 cursor-pointer"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        রিমুভ
                       </button>
-                    </div>
-                  ) : (
-                    <span className="text-[10px] text-slate-500 flex-1">QR বা পিকচার নেই</span>
-                  )}
-                  <label className="px-2.5 py-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition shrink-0">
-                    {uploadingQrField === 'rocket' ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <Upload className="w-3 h-3" />
                     )}
-                    <span>{paymentSettings.rocketQrUrl ? 'পরিবর্তন' : 'পিকচার আপলোড'}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) handleUploadPaymentImage(f, 'rocket', (url) => setPaymentSettings((prev) => ({ ...prev, rocketQrUrl: url })));
-                      }}
-                    />
-                  </label>
+                    <label className="px-2.5 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-[10px] flex items-center gap-1 cursor-pointer transition">
+                      {uploadingQrField === 'nagad_logo' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                      <span>{paymentSettings.nagadLogoUrl ? 'পরিবর্তন' : '📷 লোগো আপলোড'}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) handleUploadPaymentImage(f, 'nagad_logo', (url) => setPaymentSettings((prev) => ({ ...prev, nagadLogoUrl: url })));
+                        }}
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -1971,35 +1978,51 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                     <span>কাস্টম ডিপোজিট মেথড (Direct Picture Upload সহ)</span>
                   </h5>
                   <p className="text-[11px] text-slate-400 mt-0.5">
-                    আপনি নিজের পছন্দমতো যেকোনো মেথড (যেমন: Upay, Bank, Cash, Agent) সরাসরি পিকচার বা QR আপলোড করে যোগ করতে পারবেন।
+                    আপনি নিজের পছন্দমতো যেকোনো মেথড (যেমন: Upay, Bank, Cash, Agent) সরাসরি পিকচার আপলোড করে যোগ করতে পারবেন। (QR শুধুমাত্র বাইন্যান্সের জন্য সংরক্ষিত)।
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newId = `cm_${Date.now()}`;
-                    const currentList = paymentSettings.customMethods || [];
-                    setPaymentSettings({
-                      ...paymentSettings,
-                      customMethods: [
-                        ...currentList,
-                        {
-                          id: newId,
-                          name: '',
-                          type: 'custom',
-                          account: '',
-                          imageUrl: '',
-                          instructions: '',
-                          enabled: true
+                <div className="flex items-center gap-2 shrink-0">
+                  {paymentSettings.customMethods && paymentSettings.customMethods.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm('আপনি কি সব কাস্টম মেথড একসাথে ডিলিট করতে চান?')) {
+                          setPaymentSettings({ ...paymentSettings, customMethods: [] });
                         }
-                      ]
-                    });
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1 shadow-md cursor-pointer transition shrink-0"
-                >
-                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span>নতুন মেথড যোগ করুন</span>
-                </button>
+                      }}
+                      className="px-2.5 py-1.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 font-bold text-xs flex items-center gap-1 border border-rose-500/30 cursor-pointer transition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>সব মুছুন</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newId = `cm_${Date.now()}`;
+                      const currentList = paymentSettings.customMethods || [];
+                      setPaymentSettings({
+                        ...paymentSettings,
+                        customMethods: [
+                          ...currentList,
+                          {
+                            id: newId,
+                            name: '',
+                            type: 'custom',
+                            account: '',
+                            imageUrl: '',
+                            instructions: '',
+                            enabled: true
+                          }
+                        ]
+                      });
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1 shadow-md cursor-pointer transition shrink-0"
+                  >
+                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>নতুন মেথড যোগ করুন</span>
+                  </button>
+                </div>
               </div>
 
               {(!paymentSettings.customMethods || paymentSettings.customMethods.length === 0) ? (
@@ -2082,27 +2105,13 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                         </div>
                       </div>
 
-                      {/* Picture / QR Code Upload for this custom method */}
-                      <div className="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-lg bg-[#070b14] border border-[#162032]">
-                        <div className="flex items-center gap-2.5">
-                          {cm.imageUrl ? (
-                            <img src={cm.imageUrl} alt={cm.name} className="w-10 h-10 rounded-lg object-cover border border-amber-500/30" />
-                          ) : (
-                            <div className="w-10 h-10 rounded-lg bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-400">
-                              <ImageIcon className="w-5 h-5" />
-                            </div>
-                          )}
-                          <div>
-                            <div className="text-[11px] font-bold text-slate-200">
-                              মেথডের ছবি / কিউআর কোড (Direct Image / QR)
-                            </div>
-                            <div className="text-[10px] text-slate-400">
-                              {cm.imageUrl ? 'ছবি যুক্ত আছে (সরাসরি ডিপোজিট পেজে দেখাবে)' : 'কোনো ছবি যুক্ত নেই (পিকচার আপলোড বাটনে ক্লিক করুন)'}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
+                      {/* Picture / Representative Icon Upload & Link for this custom method */}
+                      <div className="p-3 rounded-2xl bg-[#060a14] border border-[#17253d] space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-black text-amber-300 flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                            <span>মেথডের ছবি ও রেপ্রেজেন্টেটিভ আইকন (Method Image / Icon):</span>
+                          </label>
                           {cm.imageUrl && (
                             <button
                               type="button"
@@ -2111,34 +2120,123 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                                 list[idx] = { ...list[idx], imageUrl: '' };
                                 setPaymentSettings({ ...paymentSettings, customMethods: list });
                               }}
-                              className="px-2.5 py-1 text-[11px] rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 cursor-pointer"
+                              className="px-2 py-0.5 text-[10px] font-bold rounded-lg bg-rose-500/15 text-rose-400 hover:bg-rose-500/25 border border-rose-500/30 transition cursor-pointer flex items-center gap-1"
                             >
-                              রিমুভ
+                              <Trash2 className="w-3 h-3" />
+                              <span>ছবি সরান</span>
                             </button>
                           )}
-                          <label className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-[11px] flex items-center gap-1.5 cursor-pointer shadow transition">
-                            {uploadingQrField === `custom_${idx}` ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <Upload className="w-3.5 h-3.5" />
-                            )}
-                            <span>{cm.imageUrl ? 'ছবি পরিবর্তন' : '📷 ডাইরেক্ট পিক আপলোড'}</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(e) => {
-                                const f = e.target.files?.[0];
-                                if (f) {
-                                  handleUploadPaymentImage(f, `custom_${idx}`, (url) => {
+                        </div>
+
+                        {/* Top: Image Preview + Upload Button + Direct URL Link Input */}
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                          {/* Live Thumbnail Preview */}
+                          <div className="flex items-center gap-2.5 shrink-0">
+                            <div className="w-12 h-12 rounded-xl bg-[#0b1220] border-2 border-amber-500/40 p-1 flex items-center justify-center overflow-hidden shadow-md">
+                              {cm.imageUrl ? (
+                                <img
+                                  src={cm.imageUrl}
+                                  alt={cm.name || 'Preview'}
+                                  className="w-full h-full object-contain rounded-lg"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLElement).style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <div className="text-slate-500 flex flex-col items-center justify-center">
+                                  <ImageIcon className="w-5 h-5 text-slate-500" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="hidden sm:block">
+                              <div className="text-[11px] font-bold text-slate-200">
+                                {cm.imageUrl ? '✓ আইকন সক্রিয়' : 'নো আইকন'}
+                              </div>
+                              <div className="text-[9px] text-slate-400">
+                                ডিপোজিট পেজে শো করবে
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* File Upload Button + Image Link Input */}
+                          <div className="flex-1 w-full flex flex-col sm:flex-row gap-2">
+                            {/* File Upload Button */}
+                            <label className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow transition shrink-0">
+                              {uploadingQrField === `custom_${idx}` ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Upload className="w-3.5 h-3.5" />
+                              )}
+                              <span>{cm.imageUrl ? 'ছবি পরিবর্তন' : '📷 পিকচার আপলোড'}</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const f = e.target.files?.[0];
+                                  if (f) {
+                                    handleUploadPaymentImage(f, `custom_${idx}`, (url) => {
+                                      const list = [...(paymentSettings.customMethods || [])];
+                                      list[idx] = { ...list[idx], imageUrl: url };
+                                      setPaymentSettings({ ...paymentSettings, customMethods: list });
+                                    });
+                                  }
+                                }}
+                              />
+                            </label>
+
+                            {/* Direct URL Input */}
+                            <div className="relative flex-1">
+                              <Link className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                              <input
+                                type="url"
+                                value={cm.imageUrl || ''}
+                                onChange={(e) => {
+                                  const list = [...(paymentSettings.customMethods || [])];
+                                  list[idx] = { ...list[idx], imageUrl: e.target.value };
+                                  setPaymentSettings({ ...paymentSettings, customMethods: list });
+                                }}
+                                placeholder="বা ছবির সরাসরি লিংক পেস্ট করুন (e.g. https://.../logo.png)"
+                                className="w-full bg-[#05080f] border border-[#1f2d48] rounded-xl pl-8 pr-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Quick 1-Click Representative Icon Presets */}
+                        <div className="pt-2 border-t border-slate-800/80">
+                          <div className="text-[10px] font-bold text-slate-400 mb-1.5 flex items-center justify-between">
+                            <span>রেপ্রেজেন্টেটিভ আইকন নির্বাচন করুন (১-ক্লিক):</span>
+                            <span className="text-[9px] text-amber-400">Bkash, Nagad, Upay ও অন্যান্য</span>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-1.5">
+                            {PAYMENT_ICON_PRESETS.map((preset) => {
+                              const isSelected = cm.imageUrl === preset.url;
+                              return (
+                                <button
+                                  key={preset.id}
+                                  type="button"
+                                  onClick={() => {
                                     const list = [...(paymentSettings.customMethods || [])];
-                                    list[idx] = { ...list[idx], imageUrl: url };
+                                    const updated = { ...list[idx], imageUrl: preset.url };
+                                    if (!updated.name) {
+                                      updated.name = preset.suggestedName;
+                                    }
+                                    list[idx] = updated;
                                     setPaymentSettings({ ...paymentSettings, customMethods: list });
-                                  });
-                                }
-                              }}
-                            />
-                          </label>
+                                  }}
+                                  className={`p-1.5 rounded-xl border flex items-center gap-1.5 transition cursor-pointer text-left ${
+                                    isSelected
+                                      ? 'bg-amber-500/20 border-amber-400 text-amber-300 ring-1 ring-amber-400/50'
+                                      : 'bg-[#090f1d] border-[#18263e] hover:border-slate-500 text-slate-300 hover:bg-[#0f192d]'
+                                  }`}
+                                >
+                                  <img src={preset.url} alt={preset.name} className="w-5 h-5 rounded-md shrink-0 object-contain" />
+                                  <span className="text-[10px] font-bold truncate leading-tight">{preset.name}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
 
@@ -2263,12 +2361,6 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
           </div>
         )}
 
-        {/* Store Items & Files Tab */}
-        {activeTab === 'store' && <AdminStoreManager />}
-
-        {/* Categories Tab */}
-        {activeTab === 'categories' && <AdminCategoriesManager />}
-
         {/* Hero Banners Control Tab */}
         {activeTab === 'banners' && <AdminBannersManager />}
 
@@ -2277,9 +2369,6 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
         {/* Support Inbox & Settings Tab */}
         {activeTab === 'support' && <AdminSupportManager />}
-
-        {/* SMTP Email Settings Tab */}
-        {activeTab === 'smtp' && <AdminSmtpManager lang={lang} />}
 
         {/* Site Logo & Branding Tab */}
         {activeTab === 'site' && <AdminSiteSettingsManager />}

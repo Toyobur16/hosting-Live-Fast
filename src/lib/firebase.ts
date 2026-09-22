@@ -29,7 +29,7 @@ export const firebaseConfig = {
   projectId: "hosting-live-fast-11b13",
   storageBucket: "hosting-live-fast-11b13.firebasestorage.app",
   messagingSenderId: "880032238370",
-  appId: "1:880032238370:web:732d55a4826a744e1c737b",
+  appId: "1:880032238370:web:c0510582bebc2ce71c737b",
   measurementId: "G-K2NFZE486M"
 };
 

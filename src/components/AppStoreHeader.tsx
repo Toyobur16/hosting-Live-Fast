@@ -11,7 +11,6 @@ import {
   Moon,
   PlusCircle,
   Crown,
-  ShoppingBag,
   Coins,
   Headphones
 } from 'lucide-react';
@@ -150,19 +149,7 @@ export function AppStoreHeader({
             }`}
           >
             <Coins className="w-3.5 h-3.5" />
-            {lang === 'bn' ? 'ডিপোজিট স্টোর' : 'Deposit Store'}
-          </button>
-
-          <button
-            onClick={() => onSelectTab('market')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'market'
-                ? 'bg-[#00d293] text-slate-950 shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <ShoppingBag className="w-3.5 h-3.5" />
-            {lang === 'bn' ? 'বট ও স্ক্রিপ্ট স্টোর' : 'Store Files'}
+            {lang === 'bn' ? 'ডিপোজিট' : 'Deposit'}
           </button>
 
           <button

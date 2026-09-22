@@ -3,7 +3,6 @@ import {
   X,
   Home,
   Crown,
-  ShoppingBag,
   PlusCircle,
   Server,
   Terminal,
@@ -84,17 +83,10 @@ export function SidebarDrawer({
     },
     {
       id: 'deposit-store',
-      label: lang === 'bn' ? 'ডিপোজিট স্টোর (লাইভ টপ-আপ)' : 'Deposit Store (Live Top-Up)',
+      label: lang === 'bn' ? 'ডিপোজিট (লাইভ টপ-আপ)' : 'Deposit (Live Top-Up)',
       icon: Coins,
       badge: 'LIVE',
       color: 'amber'
-    },
-    {
-      id: 'market',
-      label: lang === 'bn' ? 'বট ও স্ক্রিপ্ট স্টোর' : 'Bot & Script Store',
-      icon: ShoppingBag,
-      badge: lang === 'bn' ? 'ফাইল' : 'Files',
-      color: 'emerald'
     },
     {
       id: 'deploy_action',

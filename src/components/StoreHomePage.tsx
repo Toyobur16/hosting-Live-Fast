@@ -357,7 +357,7 @@ export function StoreHomePage({
         </div>
       </div>
 
-      {/* 3.5. Live Deposit Store Feature Banner */}
+      {/* 3.5. Live Deposit Feature Banner */}
       <div className="rounded-3xl border border-amber-500/30 bg-gradient-to-r from-[#11192e] via-[#0d1424] to-[#0a0f1d] p-5 sm:p-6 shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 w-80 h-full bg-gradient-to-l from-amber-500/10 to-transparent pointer-events-none" />
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative">
@@ -368,7 +368,7 @@ export function StoreHomePage({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base sm:text-lg font-black text-white">
-                  {lang === 'bn' ? '⚡ ডিপোজিট স্টোর (Deposit Store)' : '⚡ Deposit Store (Live Top-Up)'}
+                  {lang === 'bn' ? '⚡ ইনস্ট্যান্ট ডিপোজিট ও লাইভ টপ-আপ' : '⚡ Instant Deposit & Live Top-Up'}
                 </h3>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-black border border-emerald-500/30">
                   {lang === 'bn' ? 'লাইভ ডিপোজিট' : 'LIVE'}
@@ -376,8 +376,8 @@ export function StoreHomePage({
               </div>
               <p className="text-xs text-slate-300 mt-0.5">
                 {lang === 'bn'
-                  ? 'বাইনান্স (Binance Pay / UID) দিয়ে ইনস্ট্যান্ট ব্যালেন্স যোগ করুন অথবা বিকাশ, নগদ, রকেটে সহজে সেন্ড মানি করুন।'
-                  : 'Instant live deposit via Binance Pay / UID or bKash, Nagad, Rocket and custom methods.'}
+                  ? 'বাইনান্স (Binance Pay / UID) দিয়ে ইনস্ট্যান্ট ব্যালেন্স যোগ করুন অথবা বিকাশ ও নগদে সহজে সেন্ড মানি করুন।'
+                  : 'Instant deposit via Binance Pay / UID or bKash, Nagad and custom methods.'}
               </p>
             </div>
           </div>
@@ -388,7 +388,7 @@ export function StoreHomePage({
               onClick={onNavigateToDepositStore || onNavigateToWallet}
               className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer transition hover:scale-102"
             >
-              <span>{lang === 'bn' ? 'স্টোরে প্রবেশ করুন' : 'Open Deposit Store'}</span>
+              <span>{lang === 'bn' ? 'ডিপোজিট করুন' : 'Deposit Now'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
