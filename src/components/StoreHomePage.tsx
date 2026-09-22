@@ -368,16 +368,16 @@ export function StoreHomePage({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base sm:text-lg font-black text-white">
-                  {lang === 'bn' ? '⚡ ইনস্ট্যান্ট ডিপোজিট ও লাইভ টপ-আপ' : '⚡ Instant Deposit & Live Top-Up'}
+                  {lang === 'bn' ? '💳 ওয়ালেট ডিপোজিট ও লাইভ টপ-আপ' : '💳 Wallet Deposit & Top-Up'}
                 </h3>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-black border border-emerald-500/30">
-                  {lang === 'bn' ? 'লাইভ ডিপোজিট' : 'LIVE'}
+                  {lang === 'bn' ? 'সরাসরি ডিপোজিট' : 'LIVE'}
                 </span>
               </div>
               <p className="text-xs text-slate-300 mt-0.5">
                 {lang === 'bn'
-                  ? 'বাইনান্স (Binance Pay / UID) দিয়ে ইনস্ট্যান্ট ব্যালেন্স যোগ করুন অথবা বিকাশ ও নগদে সহজে সেন্ড মানি করুন।'
-                  : 'Instant deposit via Binance Pay / UID or bKash, Nagad and custom methods.'}
+                  ? 'বাইনান্স (Binance Pay / UID), বিকাশ ও নগদে সহজে ওয়ালেটে ব্যালেন্স রিচার্জ করুন।'
+                  : 'Deposit via Binance Pay / UID or bKash, Nagad and custom methods.'}
               </p>
             </div>
           </div>
@@ -454,7 +454,7 @@ export function StoreHomePage({
             {lang === 'bn' ? 'ওয়ালেট ও বাইনান্স ডিপোজিট' : 'Binance Pay Deposit'}
           </h4>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            {lang === 'bn' ? 'Binance UID দিয়ে ইনস্ট্যান্ট ব্যালেন্স যোগ করুন' : 'Send USDT via Binance UID & Order ID'}
+            {lang === 'bn' ? 'Binance UID দিয়ে সহজে ব্যালেন্স যোগ করুন' : 'Send USDT via Binance UID & Order ID'}
           </p>
           <span className="text-[11px] font-bold text-[#00a876] dark:text-[#00d293] group-hover:underline flex items-center gap-1 mt-3">
             {lang === 'bn' ? 'ওয়ালেটে যান →' : 'Open Wallet →'}

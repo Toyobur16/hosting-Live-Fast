@@ -904,10 +904,7 @@ export function StoreWalletPage({
             {paymentSettings.binanceEnabled !== false && (
               <button
                 type="button"
-                onClick={() => {
-                  setSelectedGateway('binance');
-                  setBinanceMode('automatic');
-                }}
+                onClick={() => setSelectedGateway('binance')}
                 className={`p-3.5 rounded-2xl border text-left cursor-pointer transition-all ${
                   selectedGateway === 'binance'
                     ? 'bg-amber-500/15 border-amber-400 ring-2 ring-amber-400/30 shadow-lg'
@@ -920,9 +917,8 @@ export function StoreWalletPage({
                   </div>
                   <div className="min-w-0">
                     <span className="text-xs font-black text-white block truncate">Binance Pay</span>
-                    <span className="text-[10px] text-amber-400 font-bold truncate flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      ইনস্ট্যান্ট অটো-অ্যাড
+                    <span className="text-[10px] text-amber-400 font-bold truncate">
+                      Pay ID / UID
                     </span>
                   </div>
                 </div>
@@ -1090,80 +1086,10 @@ export function StoreWalletPage({
             </div>
           </div>
 
-          {/* Conditional Flow: Automatic Binance Pay vs Manual Submission Form */}
-          {selectedGateway === 'binance' && binanceMode === 'automatic' ? (
-            <div className="p-5 sm:p-7 rounded-3xl bg-gradient-to-br from-[#121c2e] via-[#0d1424] to-[#070b14] border border-amber-500/40 shadow-xl space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-amber-400/20 text-amber-400 flex items-center justify-center font-black text-sm">
-                    ⚡
-                  </div>
-                  <h3 className="text-sm font-black text-white">ইনস্ট্যান্ট অটোমেটিক Binance Pay</h3>
-                </div>
-                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
-                  ০% ট্রানজেকশন ফি
-                </span>
-              </div>
-
-              <p className="text-xs text-slate-300 leading-relaxed">
-                সরাসরি বাইন্যান্স পে অ্যাপ অথবা ওয়েবসাইটের মাধ্যমে পেমেন্ট সম্পন্ন করুন। পেমেন্ট কনফার্মেশনের সাথে সাথে ওয়ালেটে{' '}
-                <strong className="text-amber-400">${parseFloat(depositAmount) || 0} USDT</strong> স্বয়ংক্রিয়ভাবে যোগ হবে।
-              </p>
-
-              {submitError && (
-                <div className="p-3 rounded-xl bg-rose-950/50 border border-rose-800/80 text-rose-300 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{submitError}</span>
-                </div>
-              )}
-
-              <button
-                type="button"
-                disabled={binanceLoading}
-                onClick={handleCreateBinancePayOrder}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-sm shadow-xl shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
-              >
-                {binanceLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>অর্ডার তৈরি হচ্ছে...</span>
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-5 h-5 fill-slate-950" />
-                    <span>${parseFloat(depositAmount) || 0} USDT ডিপোজিট করুন (ডাইরেক্ট Binance Pay)</span>
-                  </>
-                )}
-              </button>
-
-              <div className="pt-2 text-center">
-                <button
-                  type="button"
-                  onClick={() => setBinanceMode('manual')}
-                  className="text-xs text-slate-400 hover:text-amber-400 underline cursor-pointer transition-colors"
-                >
-                  ম্যানুয়ালি Binance Pay ID / UID তে টাকা পাঠাতে চান? (ম্যানুয়াল ডিপোজিট ফর্ম)
-                </button>
-              </div>
-            </div>
-          ) : (
-            /* MANUAL SUBMISSION FORM (for bKash, Nagad, Rocket, Custom, or manual Binance) */
-            <div className="p-5 sm:p-7 rounded-3xl bg-[#0d1424] border border-[#1e2e42] shadow-xl space-y-5">
-              {selectedGateway === 'binance' && (
-                <div className="p-3 rounded-xl bg-amber-400/10 border border-amber-400/30 flex items-center justify-between gap-2 text-xs text-amber-300">
-                  <span>⚡ সরাসরি অটোমেটিক গেটওয়ে ব্যবহার করে ইনস্ট্যান্ট ব্যালেন্স যোগ করতে চান?</span>
-                  <button
-                    type="button"
-                    onClick={() => setBinanceMode('automatic')}
-                    className="px-3 py-1 rounded-lg bg-amber-400 text-slate-950 font-black text-xs cursor-pointer hover:bg-amber-300 shrink-0"
-                  >
-                    ইনস্ট্যান্ট গেটওয়েতে যান
-                  </button>
-                </div>
-              )}
-
-              {/* Step-by-Step Payment Instructions */}
-              <div className="p-4 rounded-2xl bg-[#070b14] border border-[#1e293b] space-y-4">
+          {/* DEPOSIT SUBMISSION FORM (Unified for Binance Pay, bKash, Nagad, Rocket, Custom) */}
+          <div className="p-5 sm:p-7 rounded-3xl bg-[#0d1424] border border-[#1e2e42] shadow-xl space-y-5">
+            {/* Step-by-Step Payment Instructions */}
+            <div className="p-4 rounded-2xl bg-[#070b14] border border-[#1e293b] space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
                     <span>💎</span> {getGatewayTitle()} ডিপোজিট নির্দেশিকা
@@ -1299,7 +1225,6 @@ export function StoreWalletPage({
                 </button>
               </form>
             </div>
-          )}
         </div>
       )}
 
