@@ -26,6 +26,30 @@ import {
   testSmtpWithParams
 } from './server/emailAlerts';
 import { FirebaseSync } from './server/firebaseSync';
+import { createAndSendVerificationCode, verifyEmailCode } from './server/emailVerification';
+import { modifyUserWallet, getTransactions as getWalletTransactions, getUserTransactions } from './server/walletManager';
+import {
+  getRewardAdSettings,
+  saveRewardAdSettings,
+  getUserRewardStats,
+  startAdSession,
+  completeAdSession
+} from './server/rewardAdsManager';
+import {
+  getWebsites,
+  getWebsiteById,
+  getWebsiteBySlug,
+  createWebsite,
+  deployWebsiteFiles,
+  deployWebsiteZip,
+  toggleWebsiteStatus,
+  deleteWebsite,
+  getWebsiteFilesList,
+  getWebsiteSettings,
+  saveWebsiteSettings,
+  isValidSlug,
+  sanitizeSlug
+} from './server/staticWebsitesManager';
 
 // Enforce IPv4 priority globally to eliminate ENETUNREACH in containers lacking IPv6 routes
 if (typeof (dns as any).setDefaultResultOrder === 'function') {
@@ -866,8 +890,14 @@ async function creditUserFromBinanceOrder(order: any, txDetails?: any) {
     (a) => a.id === order.userId || (a.email && order.userEmail && a.email.toLowerCase() === order.userEmail.toLowerCase())
   );
   if (targetUser) {
-    targetUser.balanceUsd = parseFloat(((targetUser.balanceUsd || 0) + finalAmount).toFixed(2));
-    saveAccounts(accounts);
+    modifyUserWallet(
+      targetUser.id,
+      finalAmount,
+      'deposit',
+      `Instant Binance Pay Deposit ($${finalAmount} ${order.currency || 'USDT'})`,
+      'binance_pay',
+      finalTrxId
+    );
   }
 
   // 2. Add approved record to plan_requests.json
@@ -1039,6 +1069,7 @@ function isUserAdmin(user: any): boolean {
   if (
     email === 'toyoburrahman9090@gmail.com' ||
     email === 'mdtayburrahman1111@gmail.com' ||
+    email === 'badsharahmanbd@gmail.com' ||
     email === 'toyobur@telegram.bot'
   ) {
     return true;
@@ -1117,6 +1148,18 @@ function enrichUserWithPlanAndRole(user: any): any {
     user.balanceUsd = 0;
     changed = true;
   }
+  if (typeof user.maxWebsites !== 'number') {
+    user.maxWebsites = isUserAdmin(user) ? 999 : (user.plan && user.plan !== 'free' && user.plan !== 'expired' ? 5 : 2);
+    changed = true;
+  }
+  if (typeof user.maxStorageMb !== 'number') {
+    user.maxStorageMb = isUserAdmin(user) ? 500 : 50;
+    changed = true;
+  }
+  if (user.emailVerified === undefined) {
+    user.emailVerified = isUserAdmin(user) ? true : Boolean(user.isVerified);
+    changed = true;
+  }
 
   if (changed) {
     const idx = accounts.findIndex((a) => a.id === user.id);
@@ -1161,7 +1204,7 @@ function getAuthUser(req: express.Request): any | null {
         );
         if (!user) {
           const isAdmin = accounts.length === 0 || 
-            (payload.email && (payload.email.toLowerCase() === 'mdtayburrahman1111@gmail.com' || payload.email.toLowerCase() === 'toyobur@telegram.bot'));
+            (payload.email && (payload.email.toLowerCase() === 'mdtayburrahman1111@gmail.com' || payload.email.toLowerCase() === 'badsharahmanbd@gmail.com' || payload.email.toLowerCase() === 'toyobur@telegram.bot'));
           user = {
             id: payload.userId,
             name: payload.name || (payload.email ? payload.email.split('@')[0] : 'User'),
@@ -1481,8 +1524,114 @@ app.get(['/health', '/api/health'], (req, res) => {
   });
 });
 
-// 1. Auth routes
-app.post('/api/auth/register', (req, res) => {
+// Virtual host subdomain router for static websites
+app.use((req, res, next) => {
+  if (req.url.startsWith('/api/') || req.url.startsWith('/site/') || req.url.startsWith('/assets/')) {
+    return next();
+  }
+
+  const host = (req.headers.host || '').toLowerCase().split(':')[0];
+  const settings = getWebsiteSettings();
+  const baseDomain = (settings.baseDomain || process.env.HOSTING_BASE_DOMAIN || 'hostinglivefast.cloud').toLowerCase();
+
+  if (host.endsWith('.' + baseDomain) && host !== baseDomain && host !== `www.${baseDomain}`) {
+    const slug = host.replace(`.${baseDomain}`, '');
+    const siteData = getWebsiteBySlug(slug);
+    if (siteData) {
+      if (siteData.website.status === 'stopped') {
+        return res.status(503).send(`
+          <!DOCTYPE html>
+          <html>
+            <head><meta charset="utf-8"><title>Website Offline</title></head>
+            <body style="background:#070b14;color:#f8fafc;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+              <div style="text-align:center;padding:24px;">
+                <h1 style="color:#f59e0b;font-size:28px;">Website Offline</h1>
+                <p style="color:#94a3b8;margin-top:8px;">This website has been temporarily stopped by its owner or administrator.</p>
+              </div>
+            </body>
+          </html>
+        `);
+      }
+
+      let subPath = req.url.split('?')[0];
+      if (!subPath || subPath === '/') subPath = '/index.html';
+      const cleanSubPath = path.normalize(subPath).replace(/^(\.\.[\/\\])+/, '');
+      const filePath = path.join(siteData.siteDir, cleanSubPath);
+
+      if (filePath.startsWith(siteData.siteDir + path.sep) && fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+        return res.sendFile(filePath);
+      }
+
+      const indexFallback = path.join(siteData.siteDir, 'index.html');
+      if (fs.existsSync(indexFallback)) {
+        return res.sendFile(indexFallback);
+      }
+
+      return res.status(404).send('404 Not Found');
+    }
+  }
+  next();
+});
+
+// Direct static website routing: /site/:slug/*
+app.get('/site/:slug*', (req, res) => {
+  const params = req.params as any;
+  const slug = params.slug || params['slug*'] || params['0'] || '';
+  const siteData = getWebsiteBySlug(slug);
+  if (!siteData) {
+    return res.status(404).send(`
+      <!DOCTYPE html>
+      <html>
+        <head><meta charset="utf-8"><title>404 - Site Not Found</title></head>
+        <body style="background:#070b14;color:#f8fafc;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+          <div style="text-align:center;padding:24px;">
+            <h1 style="color:#ef4444;font-size:32px;">404 - Site Not Found</h1>
+            <p style="color:#94a3b8;margin-top:8px;">The static website '${slug}' was not found.</p>
+            <a href="/" style="display:inline-block;margin-top:16px;color:#00d293;text-decoration:none;">← Return to hosting live fast</a>
+          </div>
+        </body>
+      </html>
+    `);
+  }
+
+  if (siteData.website.status === 'stopped') {
+    return res.status(503).send(`
+      <!DOCTYPE html>
+      <html>
+        <head><meta charset="utf-8"><title>Website Offline</title></head>
+        <body style="background:#070b14;color:#f8fafc;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+          <div style="text-align:center;padding:24px;">
+            <h1 style="color:#f59e0b;font-size:28px;">Website Offline</h1>
+            <p style="color:#94a3b8;margin-top:8px;">This website is currently paused by its owner or administrator.</p>
+          </div>
+        </body>
+      </html>
+    `);
+  }
+
+  let subPath = req.params[0] || '';
+  if (!subPath || subPath === '/') subPath = '/index.html';
+  const cleanSubPath = path.normalize(subPath).replace(/^(\.\.[\/\\])+/, '');
+  const filePath = path.join(siteData.siteDir, cleanSubPath);
+
+  if (!filePath.startsWith(siteData.siteDir + path.sep) && filePath !== siteData.siteDir) {
+    return res.status(403).send('Forbidden');
+  }
+
+  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+    return res.sendFile(filePath);
+  }
+
+  const indexFallback = path.join(siteData.siteDir, 'index.html');
+  if (fs.existsSync(indexFallback)) {
+    return res.sendFile(indexFallback);
+  }
+
+  return res.status(404).send('File not found');
+});
+
+// 1. Auth routes with 6-digit Email Verification
+app.post('/api/auth/register', async (req, res) => {
   const { name, email, password } = req.body;
   if (!name || !email) {
     return res.status(400).json({ error: 'Name and email are required' });
@@ -1497,6 +1646,7 @@ app.post('/api/auth/register', (req, res) => {
   const userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
   const isAdmin = accounts.length === 0 ||
     cleanEmail === 'mdtayburrahman1111@gmail.com' ||
+    cleanEmail === 'badsharahmanbd@gmail.com' ||
     cleanEmail === 'toyobur@telegram.bot';
 
   const newUser = {
@@ -1507,10 +1657,13 @@ app.post('/api/auth/register', (req, res) => {
     role: isAdmin ? 'admin' : 'user',
     plan: 'free',
     maxBots: isAdmin ? 999 : 1,
+    maxWebsites: isAdmin ? 999 : 2,
+    maxStorageMb: isAdmin ? 500 : 50,
     planExpiresAt: null,
     balanceBdt: 0,
     balanceUsd: 0,
-    isVerified: true,
+    isVerified: isAdmin ? true : false,
+    emailVerified: isAdmin ? true : false,
     avatar: '',
     googleId: '',
     createdAt: new Date().toISOString()
@@ -1524,7 +1677,104 @@ app.post('/api/auth/register', (req, res) => {
   sessions[token] = userId;
   saveSessions(sessions);
 
-  res.json({ success: true, token, user: enriched });
+  // Automatically dispatch 6-digit verification email if not admin
+  if (!isAdmin) {
+    createAndSendVerificationCode(cleanEmail, name.trim()).catch((err) => {
+      console.error('Failed to send initial verification code:', err);
+    });
+  }
+
+  res.json({
+    success: true,
+    token,
+    user: enriched,
+    requiresVerification: !isAdmin,
+    message: isAdmin
+      ? 'স্বাগতম এডমিন!'
+      : 'আমরা আপনার ইমেইলে একটি ৬ সংখ্যার verification code পাঠিয়েছি।'
+  });
+});
+
+// Send or resend 6-digit verification code
+app.post('/api/auth/send-verification-code', async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'ইমেইল এড্রেস আবশ্যক' });
+  }
+  const cleanEmail = email.trim().toLowerCase();
+  const accounts = getAccounts();
+  const user = accounts.find((a) => a.email && a.email.trim().toLowerCase() === cleanEmail);
+
+  const result = await createAndSendVerificationCode(cleanEmail, user?.name);
+  if (!result.success) {
+    return res.status(429).json(result);
+  }
+  res.json({
+    success: true,
+    message: 'আমরা আপনার ইমেইলে একটি ৬ সংখ্যার verification code পাঠিয়েছি।'
+  });
+});
+
+// Resend 6-digit verification code
+app.post('/api/auth/resend-verification-code', async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'ইমেইল এড্রেস আবশ্যক' });
+  }
+  const cleanEmail = email.trim().toLowerCase();
+  const accounts = getAccounts();
+  const user = accounts.find((a) => a.email && a.email.trim().toLowerCase() === cleanEmail);
+
+  const result = await createAndSendVerificationCode(cleanEmail, user?.name);
+  if (!result.success) {
+    return res.status(429).json(result);
+  }
+  res.json({
+    success: true,
+    message: 'নতুন ৬ সংখ্যার ভেরিফিকেশন কোড পাঠানো হয়েছে।'
+  });
+});
+
+// Verify 6-digit code and activate account
+app.post('/api/auth/verify-email', (req, res) => {
+  const { email, code } = req.body;
+  if (!email || !code) {
+    return res.status(400).json({ error: 'ইমেইল এবং ৬ সংখ্যার কোড প্রদান করুন' });
+  }
+  const cleanEmail = email.trim().toLowerCase();
+  const verifyResult = verifyEmailCode(cleanEmail, code);
+
+  if (!verifyResult.success) {
+    return res.status(400).json(verifyResult);
+  }
+
+  const accounts = getAccounts();
+  const user = accounts.find((a) => a.email && a.email.trim().toLowerCase() === cleanEmail);
+  if (!user) {
+    return res.status(404).json({ error: 'ইউজার খুঁজে পাওয়া যায়নি' });
+  }
+
+  user.emailVerified = true;
+  user.isVerified = true;
+  saveAccounts(accounts);
+
+  const enriched = enrichUserWithPlanAndRole(user);
+  const token = generateAuthToken(enriched);
+  const sessions = getSessions();
+  sessions[token] = user.id;
+  saveSessions(sessions);
+
+  // Sync to Firestore
+  try {
+    FirebaseSync.syncAccountToCloud(enriched).catch(() => {});
+  } catch {}
+
+  res.json({
+    success: true,
+    message: '🎉 আপনার ইমেইল সফলভাবে ভেরিফাই হয়েছে! অ্যাকাউন্ট সক্রিয় করা হয়েছে।',
+    token,
+    user: enriched
+  });
 });
 
 app.post('/api/auth/login', (req, res) => {
@@ -1540,6 +1790,7 @@ app.post('/api/auth/login', (req, res) => {
     const userId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const isAdmin = accounts.length === 0 ||
       cleanEmail === 'mdtayburrahman1111@gmail.com' ||
+      cleanEmail === 'badsharahmanbd@gmail.com' ||
       cleanEmail === 'toyobur@telegram.bot';
     user = {
       id: userId,
@@ -1549,22 +1800,28 @@ app.post('/api/auth/login', (req, res) => {
       role: isAdmin ? 'admin' : 'user',
       plan: 'free',
       maxBots: isAdmin ? 999 : 1,
+      maxWebsites: isAdmin ? 999 : 2,
+      maxStorageMb: isAdmin ? 500 : 50,
       planExpiresAt: null,
       balanceBdt: 0,
       balanceUsd: 0,
-      isVerified: true,
+      isVerified: isAdmin ? true : false,
+      emailVerified: isAdmin ? true : false,
       avatar: '',
       googleId: '',
       createdAt: new Date().toISOString()
     };
     accounts.push(user);
     saveAccounts(accounts);
+
+    if (!isAdmin) {
+      createAndSendVerificationCode(cleanEmail, user.name).catch(() => {});
+    }
   } else {
     // Check password if set
     if (user.password && password && user.password !== password) {
       return res.status(401).json({ error: 'ভুল পাসওয়ার্ড! অনুগ্রহ করে সঠিক পাসওয়ার্ড দিন অথবা পাসওয়ার্ড রিসেট করুন।' });
     }
-    // If account had no password previously, save it now
     if (!user.password && password) {
       user.password = password;
       saveAccounts(accounts);
@@ -1577,7 +1834,15 @@ app.post('/api/auth/login', (req, res) => {
   sessions[token] = user.id;
   saveSessions(sessions);
 
-  res.json({ success: true, token, user });
+  const requiresVerification = (user.emailVerified === false || user.isVerified === false) && user.role !== 'admin';
+
+  res.json({
+    success: true,
+    token,
+    user,
+    requiresVerification,
+    message: requiresVerification ? 'আমরা আপনার ইমেইলে একটি ৬ সংখ্যার verification code পাঠিয়েছি।' : undefined
+  });
 });
 
 app.post('/api/auth/reset-password', (req, res) => {
@@ -1601,6 +1866,271 @@ app.post('/api/auth/reset-password', (req, res) => {
   saveSessions(sessions);
 
   res.json({ success: true, message: 'পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে', token, user: enriched });
+});
+
+// USD Wallet & Transactions endpoints
+app.get('/api/wallet', (req, res) => {
+  const user = getAuthUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const transactions = getUserTransactions(user.id, user.email);
+  res.json({
+    success: true,
+    balanceUsd: user.balanceUsd || 0,
+    balanceBdt: user.balanceBdt || 0,
+    transactions
+  });
+});
+
+app.get('/api/wallet/transactions', (req, res) => {
+  const user = getAuthUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const transactions = getUserTransactions(user.id, user.email);
+  res.json({ success: true, transactions });
+});
+
+// Rewarded Video Ads endpoints
+app.get('/api/rewards/stats', (req, res) => {
+  const user = getAuthUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const stats = getUserRewardStats(user.id, user.balanceUsd || 0);
+  res.json({ success: true, stats });
+});
+
+app.post('/api/rewards/start-session', (req, res) => {
+  const user = getAuthUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'বিজ্ঞাপন দেখার পূর্বে লগইন করুন' });
+  }
+  if (user.emailVerified === false && user.role !== 'admin') {
+    return res.status(403).json({ error: 'বিজ্ঞাপন দেখে রিওয়ার্ড পাওয়ার আগে ইমেইল ভেরিফাই করুন।' });
+  }
+
+  const result = startAdSession(user.id);
+  if (!result.success) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+app.post('/api/rewards/ad-complete', (req, res) => {
+  const user = getAuthUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const { sessionId } = req.body;
+  if (!sessionId) {
+    return res.status(400).json({ error: 'সেশন আইডি দেওয়া আবশ্যক (Session ID required)' });
+  }
+
+  const result = completeAdSession(user.id, sessionId, user.email);
+  if (!result.success) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+// Static Website Hosting endpoints
+app.get('/api/websites', (req, res) => {
+  const user = getAuthUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const websites = getWebsites(user.role === 'admin' && req.query.all === 'true' ? undefined : user.id);
+  res.json({ success: true, websites });
+});
+
+app.get('/api/websites/check-slug/:slug', (req, res) => {
+  const { slug } = req.params;
+  const cleanSlug = sanitizeSlug(slug);
+  const isValid = isValidSlug(cleanSlug);
+  if (!isValid) {
+    return res.json({ available: false, slug: cleanSlug, error: 'সাবডোমেন ৩-৩০ অক্ষরের এবং শুধুমাত্র বর্ণ/সংখ্যা গ্রহণযোগ্য।' });
+  }
+
+  const websites = getWebsites();
+  const taken = websites.some((w) => w.slug === cleanSlug);
+  res.json({ available: !taken, slug: cleanSlug });
+});
+
+app.post('/api/websites', async (req, res) => {
+  const user = getAuthUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'ওয়েবসাইট তৈরি করতে লগইন করুন' });
+  }
+  if (user.emailVerified === false && user.role !== 'admin') {
+    return res.status(403).json({ error: 'ওয়েবসাইট হোস্ট করার পূর্বে আপনার ইমেইল ভেরিফাই করুন।' });
+  }
+
+  const existingSites = getWebsites(user.id);
+  const maxWebsites = user.maxWebsites || (user.role === 'admin' ? 999 : 2);
+  if (existingSites.length >= maxWebsites && user.role !== 'admin') {
+    return res.status(400).json({
+      error: `আপনার বর্তমান প্যাকেজের ওয়েবসাইট লিমিট (${maxWebsites}টি) পূর্ণ হয়েছে। আরও ওয়েবসাইট তৈরি করতে প্ল্যান আপগ্রেড করুন!`
+    });
+  }
+
+  const { name, slug } = req.body;
+  const result = await createWebsite(user.id, user.email, name, slug);
+  if (!result.success) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+app.get('/api/websites/:id', (req, res) => {
+  const user = getAuthUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const website = getWebsiteById(req.params.id, user.role === 'admin' ? undefined : user.id);
+  if (!website) {
+    return res.status(404).json({ error: 'ওয়েবসাইট পাওয়া যায়নি' });
+  }
+  res.json({ success: true, website });
+});
+
+app.get('/api/websites/:id/files', (req, res) => {
+  const user = getAuthUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const files = getWebsiteFilesList(req.params.id, user.role === 'admin' ? undefined : user.id);
+  res.json({ success: true, files });
+});
+
+app.post('/api/websites/:id/deploy-files', async (req, res) => {
+  const user = getAuthUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const { files } = req.body;
+  if (!files || !Array.isArray(files) || files.length === 0) {
+    return res.status(400).json({ error: 'কোনো ফাইল আপলোড করা হয়নি' });
+  }
+
+  const result = await deployWebsiteFiles(req.params.id, user.id, files);
+  if (!result.success) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+app.post('/api/websites/:id/deploy-zip', async (req, res) => {
+  const user = getAuthUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const { zipBase64 } = req.body;
+  if (!zipBase64) {
+    return res.status(400).json({ error: 'জিপ ফাইল প্রদান করা আবশ্যক' });
+  }
+
+  const result = await deployWebsiteZip(req.params.id, user.id, zipBase64);
+  if (!result.success) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+app.post('/api/websites/:id/toggle-status', (req, res) => {
+  const user = getAuthUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const result = toggleWebsiteStatus(req.params.id, user.role === 'admin' ? undefined : user.id);
+  if (!result.success) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+app.delete('/api/websites/:id', (req, res) => {
+  const user = getAuthUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const result = deleteWebsite(req.params.id, user.role === 'admin' ? undefined : user.id);
+  if (!result.success) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+// Admin Rewards, Websites & User Wallet adjustment endpoints
+app.get('/api/admin/rewards/settings', (req, res) => {
+  const admin = getAuthUser(req);
+  if (!isUserAdmin(admin)) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  res.json({ success: true, settings: getRewardAdSettings() });
+});
+
+app.post('/api/admin/rewards/settings', (req, res) => {
+  const admin = getAuthUser(req);
+  if (!isUserAdmin(admin)) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const saved = saveRewardAdSettings(req.body);
+  res.json({ success: saved, settings: getRewardAdSettings() });
+});
+
+app.get('/api/admin/websites', (req, res) => {
+  const admin = getAuthUser(req);
+  if (!isUserAdmin(admin)) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const websites = getWebsites();
+  res.json({ success: true, websites });
+});
+
+app.post('/api/admin/websites/:id/status', (req, res) => {
+  const admin = getAuthUser(req);
+  if (!isUserAdmin(admin)) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const { status } = req.body;
+  const result = toggleWebsiteStatus(req.params.id, undefined, status);
+  res.json(result);
+});
+
+app.delete('/api/admin/websites/:id', (req, res) => {
+  const admin = getAuthUser(req);
+  if (!isUserAdmin(admin)) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const result = deleteWebsite(req.params.id, undefined);
+  res.json(result);
+});
+
+app.post('/api/admin/users/:id/adjust-wallet', (req, res) => {
+  const admin = getAuthUser(req);
+  if (!isUserAdmin(admin)) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const { amount, reason, type } = req.body;
+  const numAmount = parseFloat(amount);
+  if (isNaN(numAmount)) {
+    return res.status(400).json({ error: 'সঠিক টাকার পরিমাণ দিন' });
+  }
+
+  const result = modifyUserWallet(
+    req.params.id,
+    numAmount,
+    type || 'admin_adjustment',
+    reason || 'এডমিন দ্বারা ব্যালেন্স অ্যাডজাস্টমেন্ট',
+    'admin'
+  );
+
+  if (!result.success) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
 });
 
 app.get('/api/auth/me', (req, res) => {
@@ -1672,6 +2202,7 @@ app.post('/api/auth/google', (req, res) => {
 
     const isAdmin = accounts.length === 0 ||
       email === 'mdtayburrahman1111@gmail.com' ||
+      email === 'badsharahmanbd@gmail.com' ||
       email === 'toyobur@telegram.bot' ||
       (user && user.role === 'admin');
 
@@ -2679,6 +3210,10 @@ app.post('/api/plans/buy-with-wallet', async (req, res) => {
   const targetUser = accounts.find((a) => a.id === user.id);
   if (!targetUser) return res.status(404).json({ error: 'User not found' });
 
+  if (targetUser.emailVerified === false && targetUser.role !== 'admin') {
+    return res.status(403).json({ error: 'প্যাকেজ কেনার পূর্বে আপনার ইমেইল ভেরিফাই করুন।' });
+  }
+
   targetUser.balanceBdt = typeof targetUser.balanceBdt === 'number' ? targetUser.balanceBdt : 0;
   targetUser.balanceUsd = typeof targetUser.balanceUsd === 'number' ? targetUser.balanceUsd : 0;
 
@@ -2688,14 +3223,26 @@ app.post('/api/plans/buy-with-wallet', async (req, res) => {
   if (payCurrency === 'USD') {
     if (targetUser.balanceUsd < price) {
       return res.status(400).json({
-        error: `আপনার ওয়ালেটে পর্যাপ্ত USD ব্যালেন্স নেই। প্রয়োজন: $${price} USD, বর্তমান ব্যালেন্স: $${targetUser.balanceUsd.toFixed(2)} USD। প্রথমে ডিপোজিট করুন।`,
+        error: `আপনার ওয়ালেটে পর্যাপ্ত USD ব্যালেন্স নেই। প্রয়োজন: $${price} USD, বর্তমান ব্যালেন্স: $${targetUser.balanceUsd.toFixed(2)} USD। প্রথমে ডিপোজিট করুন বা Ad দেখে আয় করুন।`,
         needsDeposit: true,
         requiredAmount: price,
         currentBalance: targetUser.balanceUsd,
         currency: 'USD'
       });
     }
-    targetUser.balanceUsd = parseFloat((targetUser.balanceUsd - price).toFixed(2));
+
+    const deductResult = modifyUserWallet(
+      targetUser.id,
+      -price,
+      'plan_purchase',
+      `Hosting Plan: ${plan.nameBn || plan.nameEn} ($${price} USD)`,
+      'wallet_plan_purchase',
+      plan.id
+    );
+
+    if (!deductResult.success) {
+      return res.status(400).json({ error: deductResult.error || 'ব্যালেন্স কাটা সম্ভব হয়নি' });
+    }
   } else {
     if (targetUser.balanceBdt < price) {
       return res.status(400).json({
@@ -2707,30 +3254,36 @@ app.post('/api/plans/buy-with-wallet', async (req, res) => {
       });
     }
     targetUser.balanceBdt = parseFloat((targetUser.balanceBdt - price).toFixed(2));
+    saveAccounts(accounts);
   }
 
-  // Activate / extend user plan
+  // Reload targetUser to reflect new balance
+  const refreshedUser = accounts.find((a) => a.id === user.id) || targetUser;
+
+  // Activate / extend user plan & website limits
   const durationDays = plan.durationDays || 30;
-  targetUser.plan = plan.id;
-  targetUser.maxBots = plan.maxBots || 3;
-  const currentExpiry = (targetUser.planExpiresAt && targetUser.planExpiresAt > Date.now()) ? targetUser.planExpiresAt : Date.now();
-  targetUser.planExpiresAt = currentExpiry + durationDays * 24 * 60 * 60 * 1000;
+  refreshedUser.plan = plan.id;
+  refreshedUser.maxBots = plan.maxBots || 3;
+  refreshedUser.maxWebsites = plan.maxWebsites || (plan.id === '1_year' ? 999 : (plan.id === '6_months' ? 10 : (plan.id === '3_months' ? 5 : 3)));
+  refreshedUser.maxStorageMb = plan.maxStorageMb || 100;
+  const currentExpiry = (refreshedUser.planExpiresAt && refreshedUser.planExpiresAt > Date.now()) ? refreshedUser.planExpiresAt : Date.now();
+  refreshedUser.planExpiresAt = currentExpiry + durationDays * 24 * 60 * 60 * 1000;
   saveAccounts(accounts);
 
   // Send in-app notification & email alert
   sendEmailAlert({
-    to: targetUser.email,
-    userId: targetUser.id,
+    to: refreshedUser.email,
+    userId: refreshedUser.id,
     type: 'plan_purchased',
     subject: `🎉 প্যাকেজ সফলভাবে কেনা হয়েছে (${plan.nameBn})`,
-    html: `<p>প্রিয় ${targetUser.name}, আপনি সফলভাবে <strong>${plan.nameBn}</strong> প্যাকেজটি ক্রয় করেছেন। ওয়ালেট থেকে ${price} ${payCurrency} কাটা হয়েছে। আপনার নতুন মেয়াদ: ${new Date(targetUser.planExpiresAt).toLocaleDateString('bn-BD')}।</p>`,
+    html: `<p>প্রিয় ${refreshedUser.name}, আপনি সফলভাবে <strong>${plan.nameBn}</strong> প্যাকেজটি ক্রয় করেছেন। ওয়ালেট থেকে ${price} ${payCurrency} কাটা হয়েছে। আপনার নতুন মেয়াদ: ${new Date(refreshedUser.planExpiresAt).toLocaleDateString('bn-BD')}।</p>`,
     text: `আপনি সফলভাবে ${plan.nameBn} প্যাকেজটি কিনেছেন। ওয়ালেট থেকে ${price} ${payCurrency} কাটা হয়েছে।`
   });
 
   res.json({
     success: true,
     message: `🎉 অভিনন্দন! "${plan.nameBn}" সফলভাবে ক্রয় করা হয়েছে। আপনার প্লান সক্রিয় করা হয়েছে।`,
-    user: enrichUserWithPlanAndRole(targetUser)
+    user: enrichUserWithPlanAndRole(refreshedUser)
   });
 });
 
@@ -2950,9 +3503,16 @@ app.post('/api/admin/plan-requests/:id/approve', async (req, res) => {
   const targetUser = accounts.find((a) => a.id === request.userId || (a.email && a.email.toLowerCase() === request.userEmail.toLowerCase()));
   if (targetUser) {
     if (request.type === 'deposit') {
-      // Wallet deposit approval (credit balance in USDT)
-      targetUser.balanceUsd = (targetUser.balanceUsd || 0) + (request.amount || 0);
-      saveAccounts(accounts);
+      // Wallet deposit approval (credit balance in USDT via modifyUserWallet ledger)
+      const depAmount = Number(request.amount || 0);
+      modifyUserWallet(
+        targetUser.id,
+        depAmount,
+        'deposit',
+        `Approved Deposit: ${request.method || 'Manual'} (${request.currency || 'USD'} ${depAmount})`,
+        request.method || 'manual_deposit',
+        request.transactionId
+      );
       await sendDepositProcessedAlert(targetUser, request, 'approved');
     } else {
       // Direct plan request approval
@@ -2969,6 +3529,9 @@ app.post('/api/admin/plan-requests/:id/approve', async (req, res) => {
       else if (request.planId === '1_year') targetUser.maxBots = 999;
       else if (plan && plan.maxBots) targetUser.maxBots = plan.maxBots;
       else targetUser.maxBots = 1;
+
+      targetUser.maxWebsites = (plan && plan.maxWebsites) || (request.planId === '1_year' ? 999 : (request.planId === '6_months' ? 10 : 5));
+      targetUser.maxStorageMb = (plan && plan.maxStorageMb) || 100;
 
       saveAccounts(accounts);
       await sendDepositProcessedAlert(targetUser, request, 'approved');

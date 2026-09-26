@@ -18,11 +18,13 @@ import { TokenCheckModal } from './components/TokenCheckModal';
 import { SafeUploadModal } from './components/SafeUploadModal';
 import { AdminPanelModal } from './components/AdminPanelModal';
 import { NotificationsModal } from './components/NotificationsModal';
+import { WebsitesPage } from './components/WebsitesPage';
+import { WatchAndEarnPage } from './components/WatchAndEarnPage';
 import { HostedBot, LogEntry, AuthUser, SiteSettings } from './types';
 import { playBotStoppedAlert } from './utils/audioAlert';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'home' | 'wallet' | 'support' | 'profile' | 'plans' | 'bots' | 'terminal' | 'deposit-store'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'wallet' | 'support' | 'profile' | 'plans' | 'bots' | 'terminal' | 'deposit-store' | 'websites' | 'rewards'>('home');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [bots, setBots] = useState<HostedBot[]>([]);
   const [selectedBotId, setSelectedBotId] = useState<string | null>(null);
@@ -575,6 +577,8 @@ export default function App() {
             onNavigateToDepositStore={() => setActiveTab('deposit-store')}
             onNavigateToPlans={() => setActiveTab('plans')}
             onNavigateToBots={() => setActiveTab('bots')}
+            onNavigateToWebsites={() => setActiveTab('websites')}
+            onNavigateToRewards={() => setActiveTab('rewards')}
             onDeployNewBot={handleDeployNewBot}
             onNavigateToSupport={() => setActiveTab('support')}
             onOpenAuthModal={() => setShowAuthModal(true)}
@@ -714,6 +718,28 @@ export default function App() {
             onRestart={() => selectedBot && handleRestartBot(selectedBot.id)}
             loading={loading}
             onBackToBots={() => setActiveTab('bots')}
+          />
+        )}
+
+        {/* 10. Static Website Hosting Page */}
+        {activeTab === 'websites' && (
+          <WebsitesPage
+            user={currentUser}
+            onOpenAuthModal={() => setShowAuthModal(true)}
+            onNavigateToPlans={() => setActiveTab('plans')}
+            lang={lang}
+          />
+        )}
+
+        {/* 11. Watch Ads & Earn USD Page */}
+        {activeTab === 'rewards' && (
+          <WatchAndEarnPage
+            user={currentUser}
+            onOpenAuthModal={() => setShowAuthModal(true)}
+            onNavigateToWallet={() => setActiveTab('wallet')}
+            onNavigateToPlans={() => setActiveTab('plans')}
+            onUserUpdated={(u) => setCurrentUser(u)}
+            lang={lang}
           />
         )}
       </main>

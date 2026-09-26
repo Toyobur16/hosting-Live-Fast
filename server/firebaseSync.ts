@@ -5,9 +5,23 @@
 import fs from 'fs';
 import path from 'path';
 
-const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'hosting-live-fast-11b13';
-const FIRESTORE_DATABASE_ID = process.env.FIREBASE_FIRESTORE_DATABASE_ID || '(default)';
-const API_KEY = process.env.FIREBASE_API_KEY || 'AIzaSyA08M7c1iHvXhQHeUf8kXS5cUvtJ8s_kqY';
+let configProjectId = 'hosting-live-fast-11b13';
+let configDbId = 'ai-studio-hostinglivefast-da0b37bd-7efe-4e63-a45c-5755c4657e1e';
+let configApiKey = 'AIzaSyA08M7c1iHvXhQHeUf8kXS5cUvtJ8s_kqY';
+
+try {
+  const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
+  if (fs.existsSync(configPath)) {
+    const raw = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    if (raw.projectId) configProjectId = raw.projectId;
+    if (raw.firestoreDatabaseId) configDbId = raw.firestoreDatabaseId;
+    if (raw.apiKey) configApiKey = raw.apiKey;
+  }
+} catch (e) {}
+
+const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || configProjectId;
+const FIRESTORE_DATABASE_ID = process.env.FIREBASE_FIRESTORE_DATABASE_ID || configDbId;
+const API_KEY = process.env.FIREBASE_API_KEY || configApiKey;
 
 const BASE_URL = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/${FIRESTORE_DATABASE_ID}/documents`;
 

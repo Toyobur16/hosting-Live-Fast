@@ -1221,3 +1221,152 @@ export async function checkAndSendExpiringPlanAlerts(
     modified
   };
 }
+
+/**
+ * Send Professional 6-Digit Email Verification Code
+ */
+export async function sendVerificationEmail(
+  to: string,
+  code: string,
+  userName?: string
+): Promise<{ success: boolean; simulated?: boolean; messageId?: string; error?: string }> {
+  const cleanName = userName?.trim() || to.split('@')[0] || 'User';
+  const subject = `🔐 ${code} — hosting live fast ইমেইল ভেরিফিকেশন কোড`;
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; background: #070b14; color: #f8fafc; padding: 32px; border-radius: 16px; border: 1px solid #162035; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+      <!-- Header / Logo -->
+      <div style="text-align: center; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid #1e293b;">
+        <div style="display: inline-block; width: 48px; height: 48px; line-height: 48px; background: rgba(0, 210, 147, 0.15); border: 1px solid #00d293; border-radius: 14px; font-size: 24px; margin-bottom: 10px;">⚡</div>
+        <h1 style="color: #00d293; margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px;">hosting live fast</h1>
+        <p style="color: #94a3b8; font-size: 13px; margin: 4px 0 0 0;">24/7 Cloud Bot & Website Hosting Platform</p>
+      </div>
+
+      <!-- Main Box -->
+      <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid #1e293b; border-radius: 14px; padding: 24px; margin-bottom: 24px; text-align: center;">
+        <h2 style="color: #f1f5f9; margin: 0 0 10px 0; font-size: 18px; font-weight: 700;">
+          আপনার ইমেইল ভেরিফাই করুন (Verify Your Email)
+        </h2>
+        <p style="color: #94a3b8; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
+          প্রিয় <strong>${cleanName}</strong>, hosting live fast এ আপনাকে স্বাগতম। আপনার অ্যাকাউন্ট অ্যাক্টিভ করতে নিচের ৬ সংখ্যার সিকিউর ভেরিফিকেশন কোডটি ব্যবহার করুন:
+        </p>
+
+        <!-- 6-digit Code Box -->
+        <div style="background: #030712; border: 2px dashed #00d293; border-radius: 12px; padding: 18px 24px; margin: 0 auto 20px auto; display: inline-block; min-width: 220px;">
+          <span style="font-family: 'Courier New', Courier, monospace; font-size: 34px; font-weight: 900; letter-spacing: 10px; color: #00d293; text-shadow: 0 0 10px rgba(0,210,147,0.3);">
+            ${code}
+          </span>
+        </div>
+
+        <p style="color: #f59e0b; font-size: 13px; font-weight: 600; margin: 0;">
+          ⏱ এই কোডটির মেয়াদ ১০ মিনিট থাকবে (Valid for 10 minutes)
+        </p>
+      </div>
+
+      <!-- Security Notice -->
+      <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 10px; padding: 14px; margin-bottom: 24px;">
+        <p style="color: #fca5a5; font-size: 12px; margin: 0; line-height: 1.5;">
+          🔒 <strong>নিরাপত্তা সতর্কতা:</strong> এই ভেরিফিকেশন কোডটি কারো সাথে শেয়ার করবেন না। আপনি যদি hosting live fast এ রেজিস্ট্রেশন না করে থাকেন, তবে এই ইমেইলটি অনুগ্রহ করে এড়িয়ে যান।
+        </p>
+      </div>
+
+      <!-- Footer -->
+      <div style="border-top: 1px solid #1e293b; padding-top: 18px; text-align: center; color: #64748b; font-size: 12px; line-height: 1.5;">
+        © 2026 <strong>hosting live fast</strong>. সর্বস্বত্ব সংরক্ষিত।<br>
+        24/7 Cloud Bot & Web Hosting Services | Dhaka, Bangladesh
+      </div>
+    </div>
+  `;
+
+  const text = `hosting live fast ভেরিফিকেশন কোড: ${code}\nএই কোডটির মেয়াদ ১০ মিনিট। কারো সাথে শেয়ার করবেন না।`;
+
+  return sendEmailAlert({
+    to,
+    subject,
+    html,
+    text,
+    type: 'system',
+    userId: to
+  });
+}
+
+/**
+ * Send Password Reset Code or Link
+ */
+export async function sendPasswordResetEmail(
+  to: string,
+  resetCodeOrLink: string,
+  userName?: string
+): Promise<{ success: boolean; simulated?: boolean; messageId?: string; error?: string }> {
+  const cleanName = userName?.trim() || to.split('@')[0] || 'User';
+  const subject = `🔑 আপনার পাসওয়ার্ড রিসেট রিকোয়েস্ট — hosting live fast`;
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; background: #070b14; color: #f8fafc; padding: 32px; border-radius: 16px; border: 1px solid #162035;">
+      <div style="text-align: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #1e293b;">
+        <h1 style="color: #00d293; margin: 0; font-size: 20px; font-weight: 800;">hosting live fast</h1>
+      </div>
+      <h2 style="color: #38bdf8; font-size: 17px; margin: 0 0 12px 0;">পাসওয়ার্ড রিসেট কোড (Password Reset)</h2>
+      <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">
+        প্রিয় <strong>${cleanName}</strong>, আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেট করার জন্য অনুরোধ পাওয়া গেছে।
+      </p>
+      <div style="text-align: center; margin: 20px 0;">
+        <div style="background: #030712; border: 2px dashed #38bdf8; border-radius: 10px; padding: 14px 20px; display: inline-block;">
+          <span style="font-family: monospace; font-size: 28px; font-weight: 800; letter-spacing: 6px; color: #38bdf8;">
+            ${resetCodeOrLink}
+          </span>
+        </div>
+      </div>
+      <p style="color: #94a3b8; font-size: 13px; line-height: 1.5;">
+        যদি আপনি এই রিকোয়েস্ট না করে থাকেন, অনুগ্রহ করে দ্রুত পাসওয়ার্ড পরিবর্তন করুন এবং আমাদের সাপোর্ট টিমে জানান।
+      </p>
+    </div>
+  `;
+
+  return sendEmailAlert({
+    to,
+    subject,
+    html,
+    text: `আপনার পাসওয়ার্ড রিসেট কোড: ${resetCodeOrLink} (মেয়াদ ১৫ মিনিট)`,
+    type: 'system',
+    userId: to
+  });
+}
+
+/**
+ * Send Security Notification Email (e.g. login from new device, password changed)
+ */
+export async function sendSecurityNotificationEmail(
+  to: string,
+  title: string,
+  message: string,
+  details?: Record<string, any>
+): Promise<{ success: boolean; simulated?: boolean; messageId?: string; error?: string }> {
+  const subject = `🛡️ সিকিউরিটি এলার্ট: ${title} — hosting live fast`;
+  const detailsHtml = details
+    ? `<ul style="color: #94a3b8; font-size: 13px; margin: 12px 0 0 0; padding-left: 20px;">
+        ${Object.entries(details).map(([k, v]) => `<li><strong style="color: #cbd5e1;">${k}:</strong> ${v}</li>`).join('')}
+       </ul>`
+    : '';
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; background: #070b14; color: #f8fafc; padding: 28px; border-radius: 16px; border: 1px solid #162035;">
+      <h2 style="color: #f59e0b; margin: 0 0 12px 0; font-size: 18px;">🛡️ ${title}</h2>
+      <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6; margin: 0;">${message}</p>
+      ${detailsHtml}
+      <p style="color: #64748b; font-size: 12px; margin-top: 20px; border-top: 1px solid #1e293b; padding-top: 12px;">
+        hosting live fast Security Sentinel | Automated notification
+      </p>
+    </div>
+  `;
+
+  return sendEmailAlert({
+    to,
+    subject,
+    html,
+    text: `${title}: ${message}`,
+    type: 'system',
+    userId: to
+  });
+}
+

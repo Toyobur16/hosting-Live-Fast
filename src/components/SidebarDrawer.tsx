@@ -16,7 +16,9 @@ import {
   Sparkles,
   Sun,
   Moon,
-  Languages
+  Languages,
+  Globe,
+  Film
 } from 'lucide-react';
 import { AuthUser, SiteSettings } from '../types';
 
@@ -102,6 +104,20 @@ export function SidebarDrawer({
       icon: Server,
       badge: botsCount > 0 ? `${botsCount}` : null,
       color: 'sky'
+    },
+    {
+      id: 'websites',
+      label: lang === 'bn' ? 'স্ট্যাটিক ওয়েবসাইট' : 'Static Websites',
+      icon: Globe,
+      badge: lang === 'bn' ? 'নতুন' : 'NEW',
+      color: 'cyan'
+    },
+    {
+      id: 'rewards',
+      label: lang === 'bn' ? 'অ্যাড দেখে আয়' : 'Watch & Earn',
+      icon: Film,
+      badge: 'USD',
+      color: 'pink'
     },
     {
       id: 'terminal',

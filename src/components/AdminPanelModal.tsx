@@ -12,6 +12,10 @@ import { AdminBannersManager } from './admin/AdminBannersManager';
 import { AdminSupportManager } from './admin/AdminSupportManager';
 import { AdminNoticesManager } from './admin/AdminNoticesManager';
 import { AdminSiteSettingsManager } from './admin/AdminSiteSettingsManager';
+import { AdminSmtpManager } from './admin/AdminSmtpManager';
+import { AdminAdsManager } from './admin/AdminAdsManager';
+import { AdminWebsitesManager } from './admin/AdminWebsitesManager';
+import { Mail, Film, Globe } from 'lucide-react';
 
 interface AdminPanelModalProps {
   isOpen: boolean;
@@ -22,7 +26,7 @@ interface AdminPanelModalProps {
   onPlansUpdated?: () => void;
 }
 
-export type AdminTabType = 'requests' | 'users' | 'pricing' | 'banners' | 'notices' | 'support' | 'payments' | 'bots' | 'site';
+export type AdminTabType = 'requests' | 'users' | 'pricing' | 'banners' | 'notices' | 'support' | 'payments' | 'bots' | 'site' | 'websites' | 'ads' | 'smtp';
 
 export const PAYMENT_ICON_PRESETS = [
   {
@@ -824,6 +828,9 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                 { id: 'support' as AdminTabType, labelBn: 'সাপোর্ট ইনবক্স', labelEn: 'Support Inbox', icon: Headphones, iconColor: 'text-cyan-400' },
                 { id: 'payments' as AdminTabType, labelBn: 'পেমেন্ট নাম্বার', labelEn: 'Payment Numbers', icon: CreditCard, iconColor: 'text-purple-400' },
                 { id: 'bots' as AdminTabType, labelBn: 'সকল বট নিয়ন্ত্রণ', labelEn: 'All Bots Control', icon: Bot, iconColor: 'text-blue-400' },
+                { id: 'websites' as AdminTabType, labelBn: 'ওয়েবসাইট হোস্টিং', labelEn: 'Hosted Websites', icon: Globe, iconColor: 'text-cyan-400' },
+                { id: 'ads' as AdminTabType, labelBn: 'ভিডিও অ্যাড সেটিংস', labelEn: 'Rewarded Ads', icon: Film, iconColor: 'text-pink-400' },
+                { id: 'smtp' as AdminTabType, labelBn: 'SMTP ইমেইল কনফিগ', labelEn: 'SMTP Config', icon: Mail, iconColor: 'text-emerald-400' },
                 { id: 'site' as AdminTabType, labelBn: 'সাইট লোগো ও নাম', labelEn: 'Site Logo & Branding', icon: Sliders, iconColor: 'text-amber-400' },
               ].map((tab) => {
                 const IconComp = tab.icon;
@@ -2162,6 +2169,15 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
 
         {/* Site Logo & Branding Tab */}
         {activeTab === 'site' && <AdminSiteSettingsManager />}
+
+        {/* Static Websites Admin Tab */}
+        {activeTab === 'websites' && <AdminWebsitesManager lang={lang} />}
+
+        {/* Rewarded Video Ads Config Tab */}
+        {activeTab === 'ads' && <AdminAdsManager lang={lang} />}
+
+        {/* SMTP Configuration Tab */}
+        {activeTab === 'smtp' && <AdminSmtpManager lang={lang} />}
 
         </div>
 

@@ -83,6 +83,9 @@ export interface AuthUser {
     fileUrl?: string;
     purchasedAt: number;
   }>;
+  emailVerified?: boolean;
+  maxWebsites?: number;
+  maxStorageMb?: number;
   avatar?: string;
   isVerified?: boolean;
   verificationToken?: string;
@@ -96,6 +99,7 @@ export interface FreeTrialSettings {
   enabled: boolean;
   durationDays: number;
   maxBots: number;
+  maxWebsites?: number;
   titleBn?: string;
   titleEn?: string;
   descriptionBn?: string;
@@ -108,12 +112,76 @@ export interface HostingPlan {
   nameEn: string;
   durationDays: number;
   maxBots: number;
+  maxWebsites?: number;
+  maxStorageMb?: number;
   priceBdt: number;
   priceUsd: number;
   popular?: boolean;
   isFreeTrial?: boolean;
   featuresBn: string[];
   featuresEn: string[];
+}
+
+export interface WalletTransaction {
+  id: string;
+  userId: string;
+  userEmail: string;
+  type: 'deposit' | 'ad_reward' | 'plan_purchase' | 'refund' | 'admin_adjustment' | 'hosting_payment';
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  description: string;
+  timestamp: string;
+  status: 'completed' | 'pending' | 'failed' | 'rejected';
+  source: string;
+  referenceId?: string;
+}
+
+export interface RewardAdSettings {
+  enabled: boolean;
+  rewardAmountUsd: number;
+  dailyLimit: number;
+  cooldownSeconds: number;
+  adProvider: 'custom_network' | 'admob' | 'adsense' | 'unity' | 'applovin';
+  adUnitId?: string;
+}
+
+export interface AdRewardStats {
+  adsWatchedToday: number;
+  dailyLimit: number;
+  remainingToday: number;
+  todayEarningsUsd: number;
+  totalEarningsUsd: number;
+  walletBalanceUsd: number;
+  nextAvailableAt?: number;
+  cooldownSeconds: number;
+  rewardPerAd: number;
+  adsEnabled: boolean;
+}
+
+export interface HostedWebsite {
+  id: string;
+  userId: string;
+  userEmail: string;
+  name: string;
+  slug: string;
+  subdomainUrl: string;
+  directUrl: string;
+  status: 'online' | 'stopped' | 'suspended';
+  storageBytes: number;
+  filesCount: number;
+  hasIndexHtml: boolean;
+  createdAt: string;
+  updatedAt: string;
+  lastDeployedAt: string;
+}
+
+export interface WebsiteSettings {
+  maxWebsitesPerUser: number;
+  maxStorageMb: number;
+  maxFileSizeMb: number;
+  baseDomain: string;
+  allowedExtensions: string[];
 }
 
 export interface DepositRequest {

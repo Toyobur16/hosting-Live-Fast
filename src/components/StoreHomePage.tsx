@@ -19,7 +19,9 @@ import {
   RefreshCw,
   BellRing,
   ExternalLink,
-  Code2
+  Code2,
+  Globe,
+  Film
 } from 'lucide-react';
 import { StoreBanner, AuthUser, SiteSettings } from '../types';
 
@@ -38,6 +40,8 @@ interface StoreHomePageProps {
   onNavigateToDepositStore?: () => void;
   onNavigateToPlans: () => void;
   onNavigateToBots: () => void;
+  onNavigateToWebsites?: () => void;
+  onNavigateToRewards?: () => void;
   onDeployNewBot: () => void;
   onNavigateToSupport: () => void;
   onOpenAuthModal: () => void;
@@ -54,6 +58,8 @@ export function StoreHomePage({
   onNavigateToDepositStore,
   onNavigateToPlans,
   onNavigateToBots,
+  onNavigateToWebsites,
+  onNavigateToRewards,
   onDeployNewBot,
   onNavigateToSupport,
   onOpenAuthModal,
@@ -396,7 +402,7 @@ export function StoreHomePage({
       </div>
 
       {/* 4. Quick Actions Bento Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Card 1: Plans */}
         <div
           onClick={onNavigateToPlans}
@@ -442,7 +448,45 @@ export function StoreHomePage({
           </span>
         </div>
 
-        {/* Card 3: Wallet & Deposit */}
+        {/* Card 3: Static Website Hosting */}
+        <div
+          onClick={onNavigateToWebsites}
+          className="p-5 rounded-2xl border border-slate-200 dark:border-[#1e2d48] bg-white dark:bg-[#0d1527] hover:border-cyan-400/50 hover:shadow-lg transition-all cursor-pointer group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+            <Globe className="w-5 h-5" />
+          </div>
+          <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">
+            {lang === 'bn' ? 'ওয়েবসাইট হোস্টিং' : 'Static Website Hosting'}
+          </h4>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {lang === 'bn' ? 'ZIP বা HTML ফাইল আপলোড করে লাইভ সাইট হোস্ট করুন' : 'Deploy static HTML/CSS/JS websites with custom slug'}
+          </p>
+          <span className="text-[11px] font-bold text-cyan-400 group-hover:underline flex items-center gap-1 mt-3">
+            {lang === 'bn' ? 'সাইট হোস্ট করুন →' : 'Deploy Website →'}
+          </span>
+        </div>
+
+        {/* Card 4: Watch Ads & Earn USD */}
+        <div
+          onClick={onNavigateToRewards}
+          className="p-5 rounded-2xl border border-slate-200 dark:border-[#1e2d48] bg-white dark:bg-[#0d1527] hover:border-pink-400/50 hover:shadow-lg transition-all cursor-pointer group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-pink-500/10 text-pink-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+            <Film className="w-5 h-5" />
+          </div>
+          <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">
+            {lang === 'bn' ? 'ভিডিও অ্যাড ও আর্ন' : 'Watch Ads & Earn'}
+          </h4>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {lang === 'bn' ? 'পুরস্কৃত ভিডিও বিজ্ঞাপন দেখে সরাসরি USD আর্ন করুন' : 'Watch verified rewarded video ads & earn real USD balance'}
+          </p>
+          <span className="text-[11px] font-bold text-pink-400 group-hover:underline flex items-center gap-1 mt-3">
+            {lang === 'bn' ? 'ভিডিও দেখুন →' : 'Watch & Earn →'}
+          </span>
+        </div>
+
+        {/* Card 5: Wallet & Deposit */}
         <div
           onClick={onNavigateToWallet}
           className="p-5 rounded-2xl border border-slate-200 dark:border-[#1e2d48] bg-white dark:bg-[#0d1527] hover:border-[#00d293]/50 hover:shadow-lg transition-all cursor-pointer group"
@@ -461,7 +505,7 @@ export function StoreHomePage({
           </span>
         </div>
 
-        {/* Card 4: Support */}
+        {/* Card 6: Support */}
         <div
           onClick={onNavigateToSupport}
           className="p-5 rounded-2xl border border-slate-200 dark:border-[#1e2d48] bg-white dark:bg-[#0d1527] hover:border-indigo-400/50 hover:shadow-lg transition-all cursor-pointer group"
