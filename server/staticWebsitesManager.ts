@@ -90,8 +90,28 @@ export function saveWebsites(websites: HostedWebsite[]): void {
   }
 }
 
+function banglaToLatin(text: string): string {
+  const map: Record<string, string> = {
+    'অ': 'o', 'আ': 'a', 'ই': 'i', 'ঈ': 'i', 'উ': 'u', 'ঊ': 'u', 'ঋ': 'ri',
+    'এ': 'e', 'ঐ': 'oi', 'ও': 'o', 'ঔ': 'ou',
+    'ক': 'k', 'খ': 'kh', 'গ': 'g', 'ঘ': 'gh', 'ঙ': 'ng',
+    'চ': 'ch', 'ছ': 'chh', 'জ': 'j', 'ঝ': 'jh', 'ঞ': 'n',
+    'ট': 't', 'ঠ': 'th', 'ড': 'd', 'ঢ': 'dh', 'ণ': 'n',
+    'ত': 't', 'থ': 'th', 'দ': 'd', 'ধ': 'dh', 'ন': 'n',
+    'প': 'p', 'ফ': 'f', 'ব': 'b', 'ভ': 'bh', 'ম': 'm',
+    'য': 'y', 'র': 'r', 'ল': 'l', 'শ': 'sh', 'ষ': 'sh', 'স': 's', 'হ': 'h',
+    'ড়': 'r', 'ঢ়': 'rh', 'য়': 'y', 'ৎ': 't',
+    '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4', '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9',
+    'া': 'a', 'ি': 'i', 'ী': 'i', 'ু': 'u', 'ূ': 'u', 'ৃ': 'ri',
+    'ে': 'e', 'ৈ': 'oi', 'ো': 'o', 'ৌ': 'ou', '্': ''
+  };
+  return text.split('').map((ch) => (map[ch] !== undefined ? map[ch] : ch)).join('');
+}
+
 export function sanitizeSlug(input: string): string {
-  return input
+  if (!input) return '';
+  const converted = banglaToLatin(input);
+  return converted
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9-]/g, '-')
@@ -218,6 +238,7 @@ export async function createWebsite(
     slug,
     subdomainUrl: `https://${slug}.${baseDomain}`,
     directUrl: `/site/${slug}/`,
+    liveUrl: `/site/${slug}/`,
     status: 'online',
     storageBytes: totalBytes,
     filesCount: fileCount,
@@ -252,10 +273,22 @@ export async function deployWebsiteFiles(
     fs.mkdirSync(siteDir, { recursive: true });
   }
 
-  const settings = getWebsiteSettings();
-  const allowedExts = new Set(settings.allowedExtensions);
-  const dangerousExts = new Set(['php', 'phtml', 'exe', 'sh', 'bat', 'cmd', 'pl', 'cgi', 'bin']);
+  // Check if existing index.html is the initial starter template
+  const indexPath = path.join(siteDir, 'index.html');
+  let isStarterIndex = false;
+  if (fs.existsSync(indexPath)) {
+    try {
+      const existingContent = fs.readFileSync(indexPath, 'utf-8');
+      if (existingContent.includes('LIVE ON FAST CLOUD') && existingContent.includes('hosting live fast')) {
+        isStarterIndex = true;
+      }
+    } catch {}
+  }
 
+  let hasUploadedExplicitIndex = false;
+  let primaryUploadedHtml: { name: string; targetPath: string } | null = null;
+
+  const dangerousExts = new Set(['php', 'phtml', 'exe', 'sh', 'bat', 'cmd', 'pl', 'cgi', 'bin']);
   for (const f of files) {
     const rawName = f.name.replace(/\\/g, '/');
     const safePath = path.normalize(rawName).replace(/^(\.\.[\/\\])+/, '');
@@ -271,6 +304,14 @@ export async function deployWebsiteFiles(
       return { success: false, error: `নিরাপত্তাজনিত কারণে .${ext} ফাইল আপলোড নিষিদ্ধ` };
     }
 
+    if (safePath.toLowerCase() === 'index.html' || safePath.toLowerCase() === 'index.htm') {
+      hasUploadedExplicitIndex = true;
+    } else if (ext === 'html' || ext === 'htm') {
+      if (!primaryUploadedHtml) {
+        primaryUploadedHtml = { name: safePath, targetPath: targetFilePath };
+      }
+    }
+
     const fileDir = path.dirname(targetFilePath);
     if (!fs.existsSync(fileDir)) {
       fs.mkdirSync(fileDir, { recursive: true });
@@ -281,6 +322,18 @@ export async function deployWebsiteFiles(
       fs.writeFileSync(targetFilePath, buffer);
     } else if (typeof f.content === 'string') {
       fs.writeFileSync(targetFilePath, f.content, 'utf-8');
+    }
+  }
+
+  // If no explicit index.html was uploaded, but the user uploaded an HTML file
+  // (e.g. a single file like "Mota ai.html" or "portfolio.html"), or if index.html is still the starter template:
+  if (!hasUploadedExplicitIndex && primaryUploadedHtml) {
+    try {
+      if (isStarterIndex || !fs.existsSync(indexPath) || files.length === 1) {
+        fs.copyFileSync(primaryUploadedHtml.targetPath, indexPath);
+      }
+    } catch (e) {
+      console.error('Failed to auto-promote uploaded HTML to index.html:', e);
     }
   }
 
@@ -314,6 +367,20 @@ export async function deployWebsiteZip(
     fs.mkdirSync(siteDir, { recursive: true });
   }
 
+  // Check if existing index.html is the initial starter template
+  const indexPath = path.join(siteDir, 'index.html');
+  let isStarterIndex = false;
+  if (fs.existsSync(indexPath)) {
+    try {
+      const existingContent = fs.readFileSync(indexPath, 'utf-8');
+      if (existingContent.includes('LIVE ON FAST CLOUD') && existingContent.includes('hosting live fast')) {
+        isStarterIndex = true;
+        // Remove starter index before extracting so zip contents replace it cleanly
+        fs.unlinkSync(indexPath);
+      }
+    } catch {}
+  }
+
   try {
     const zipBuffer = Buffer.from(zipBase64, 'base64');
     const zip = new AdmZip(zipBuffer);
@@ -330,6 +397,9 @@ export async function deployWebsiteZip(
     const uniqueRoots = Array.from(new Set(firstEntryNames));
     const isSingleFolderZip = uniqueRoots.length === 1 && entries.every((e) => e.entryName.startsWith(uniqueRoots[0] + '/'));
     const stripPrefix = isSingleFolderZip ? `${uniqueRoots[0]}/` : '';
+
+    let zipHasIndexHtml = false;
+    let fallbackHtmlPath = '';
 
     for (const entry of entries) {
       let relativePath = entry.entryName;
@@ -357,12 +427,25 @@ export async function deployWebsiteZip(
         continue; // skip dangerous files
       }
 
+      if (safePath.toLowerCase() === 'index.html' || safePath.toLowerCase() === 'index.htm') {
+        zipHasIndexHtml = true;
+      } else if ((ext === 'html' || ext === 'htm') && !fallbackHtmlPath) {
+        fallbackHtmlPath = targetPath;
+      }
+
       const parentDir = path.dirname(targetPath);
       if (!fs.existsSync(parentDir)) {
         fs.mkdirSync(parentDir, { recursive: true });
       }
 
       fs.writeFileSync(targetPath, entry.getData());
+    }
+
+    // If zip had no index.html, but had an HTML file, auto-promote it to index.html
+    if (!zipHasIndexHtml && fallbackHtmlPath && fs.existsSync(fallbackHtmlPath)) {
+      try {
+        fs.copyFileSync(fallbackHtmlPath, indexPath);
+      } catch {}
     }
 
     const { totalBytes, fileCount } = calculateDirectorySize(siteDir);
@@ -429,12 +512,61 @@ export function deleteWebsite(siteId: string, userId?: string): { success: boole
 }
 
 /**
+ * Update website name or slug (link)
+ */
+export function updateWebsite(
+  siteId: string,
+  userId: string | undefined,
+  updates: { name?: string; slug?: string }
+): { success: boolean; website?: HostedWebsite; error?: string } {
+  const websites = getWebsites();
+  const website = websites.find((w) => w.id === siteId && (!userId || w.userId === userId || userId === 'admin'));
+  if (!website) {
+    return { success: false, error: 'ওয়েবসাইট পাওয়া যায়নি' };
+  }
+
+  if (updates.name && updates.name.trim()) {
+    website.name = updates.name.trim();
+  }
+
+  if (updates.slug && updates.slug.trim()) {
+    const newSlug = sanitizeSlug(updates.slug);
+    if (!isValidSlug(newSlug)) {
+      return { success: false, error: 'সাবডোমেন বা লিংক ৩-৩০ অক্ষরের হতে হবে এবং শুধুমাত্র ছোট হাতের অক্ষর, সংখ্যা ও হাইফেন গ্রহণযোগ্য।' };
+    }
+
+    // Check uniqueness across other websites
+    const conflict = websites.find((w) => w.id !== siteId && (w.slug === newSlug || (Array.isArray(w.aliases) && w.aliases.includes(newSlug))));
+    if (conflict) {
+      return { success: false, error: `লিংক বা সাবডোমেন '${newSlug}' ইতোমধ্যে ব্যবহৃত হয়েছে। অন্য একটি নাম দিন।` };
+    }
+
+    if (newSlug !== website.slug) {
+      if (!website.aliases) website.aliases = [];
+      if (!website.aliases.includes(website.slug)) {
+        website.aliases.push(website.slug);
+      }
+      website.slug = newSlug;
+      const settings = getWebsiteSettings();
+      website.subdomainUrl = `https://${newSlug}.${settings.baseDomain}`;
+      website.directUrl = `/site/${newSlug}/`;
+      website.liveUrl = `/site/${newSlug}/`;
+    }
+  }
+
+  website.updatedAt = new Date().toISOString();
+  saveWebsites(websites);
+  return { success: true, website };
+}
+
+/**
  * Resolve website by slug for static serving
  */
 export function getWebsiteBySlug(slug: string): { website: HostedWebsite; siteDir: string } | null {
   const cleanSlug = sanitizeSlug(slug);
   const websites = getWebsites();
-  const website = websites.find((w) => w.slug === cleanSlug);
+  // Check exact slug or aliases
+  const website = websites.find((w) => w.slug === cleanSlug || (Array.isArray(w.aliases) && w.aliases.includes(cleanSlug)));
   if (!website) return null;
 
   const siteDir = getSiteDirectory(website.userId, website.id);

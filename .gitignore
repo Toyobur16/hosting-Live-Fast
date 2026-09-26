@@ -12,9 +12,8 @@ bun.lock
 bun.lockb
 package-lock.json.bak
 
-# Dynamic runtime auth session storage and process logs
-hosted_bots/sessions.json
-hosted_bots/*/*.log
-hosted_bots/*/venv/
-hosted_bots/*/__pycache__/
+# Dynamic runtime user bots and website uploads
+hosted_websites/
+hosted_bots/
+.aistudio/
 

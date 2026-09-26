@@ -165,8 +165,10 @@ export interface HostedWebsite {
   userEmail: string;
   name: string;
   slug: string;
+  aliases?: string[];
   subdomainUrl: string;
   directUrl: string;
+  liveUrl?: string;
   status: 'online' | 'stopped' | 'suspended';
   storageBytes: number;
   filesCount: number;

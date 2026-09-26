@@ -44,6 +44,7 @@ import {
   deployWebsiteZip,
   toggleWebsiteStatus,
   deleteWebsite,
+  updateWebsite,
   getWebsiteFilesList,
   getWebsiteSettings,
   saveWebsiteSettings,
@@ -1609,14 +1610,65 @@ app.get('/site/:slug*', (req, res) => {
     `);
   }
 
-  let subPath = req.params[0] || '';
-  if (!subPath || subPath === '/') subPath = '/index.html';
+  // Ensure trailing slash redirect for root so relative assets resolve properly
+  if (req.path === `/site/${slug}`) {
+    return res.redirect(301, `/site/${slug}/`);
+  }
+
+  let rawSubPath = req.params[0] || '';
+  let subPath = '';
+  try {
+    subPath = decodeURIComponent(rawSubPath);
+  } catch {
+    subPath = rawSubPath;
+  }
+
+  if (!subPath || subPath === '/' || subPath === '') {
+    subPath = '/index.html';
+  }
+
   const cleanSubPath = path.normalize(subPath).replace(/^(\.\.[\/\\])+/, '');
-  const filePath = path.join(siteData.siteDir, cleanSubPath);
+  let filePath = path.join(siteData.siteDir, cleanSubPath);
 
   if (!filePath.startsWith(siteData.siteDir + path.sep) && filePath !== siteData.siteDir) {
     return res.status(403).send('Forbidden');
   }
+
+  // Smart Index Resolution: if requesting root or index.html
+  if (cleanSubPath === '/index.html' || cleanSubPath === 'index.html') {
+    const indexPath = path.join(siteData.siteDir, 'index.html');
+    let isStarter = false;
+    if (fs.existsSync(indexPath)) {
+      try {
+        const text = fs.readFileSync(indexPath, 'utf-8');
+        if (text.includes('LIVE ON FAST CLOUD') && text.includes('hosting live fast')) {
+          isStarter = true;
+        }
+      } catch {}
+    }
+
+    try {
+      const entries = fs.readdirSync(siteData.siteDir, { withFileTypes: true });
+      const htmlFiles = entries
+        .filter((e) => e.isFile() && /\.(html|htm)$/i.test(e.name) && e.name.toLowerCase() !== 'index.html')
+        .map((e) => e.name);
+
+      if (htmlFiles.length > 0 && (isStarter || !fs.existsSync(indexPath))) {
+        // Automatically promote user's uploaded HTML (e.g. "Mota ai.html") to index.html
+        const bestCandidate = htmlFiles.find((f) => /^(home|main|app)/i.test(f)) || htmlFiles[0];
+        const sourceFile = path.join(siteData.siteDir, bestCandidate);
+        try {
+          fs.copyFileSync(sourceFile, indexPath);
+        } catch {}
+        filePath = sourceFile;
+      }
+    } catch {}
+  }
+
+  // Prevent stale cache so redeploys and edits show up immediately
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
 
   if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
     return res.sendFile(filePath);
@@ -1626,6 +1678,15 @@ app.get('/site/:slug*', (req, res) => {
   if (fs.existsSync(indexFallback)) {
     return res.sendFile(indexFallback);
   }
+
+  // Last-resort fallback: find any .html file in the directory
+  try {
+    const entries = fs.readdirSync(siteData.siteDir, { withFileTypes: true });
+    const anyHtml = entries.find((e) => e.isFile() && /\.(html|htm)$/i.test(e.name));
+    if (anyHtml) {
+      return res.sendFile(path.join(siteData.siteDir, anyHtml.name));
+    }
+  } catch {}
 
   return res.status(404).send('File not found');
 });
@@ -2044,6 +2105,19 @@ app.post('/api/websites/:id/toggle-status', (req, res) => {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   const result = toggleWebsiteStatus(req.params.id, user.role === 'admin' ? undefined : user.id);
+  if (!result.success) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+app.patch('/api/websites/:id', (req, res) => {
+  const user = getAuthUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  const { name, slug } = req.body;
+  const result = updateWebsite(req.params.id, user.role === 'admin' ? undefined : user.id, { name, slug });
   if (!result.success) {
     return res.status(400).json(result);
   }
